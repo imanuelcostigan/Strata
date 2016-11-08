@@ -36,7 +36,7 @@ import com.opengamma.strata.market.param.CurrencyParameterSensitivity;
 import com.opengamma.strata.market.param.UnitParameterSensitivity;
 import com.opengamma.strata.market.sensitivity.PointSensitivities;
 import com.opengamma.strata.market.surface.SurfaceName;
-import com.opengamma.strata.pricer.model.SabrInterestRateCurveParameters;
+import com.opengamma.strata.pricer.model.SabrParameters;
 
 /**
  * Test {@link SabrParametersIborCapletFloorletVolatilities}.
@@ -48,7 +48,7 @@ public class SabrParametersIborCapletFloorletVolatilitiesTest {
   private static final LocalTime TIME = LocalTime.of(10, 0);
   private static final ZoneId ZONE = ZoneId.of("Europe/London");
   private static final ZonedDateTime DATE_TIME = DATE.atTime(TIME).atZone(ZONE);
-  private static final SabrInterestRateCurveParameters PARAM = IborCapletFloorletSabrRateVolatilityDataSet.SABR_PARAM;
+  private static final SabrParameters PARAM = IborCapletFloorletSabrRateVolatilityDataSet.SABR_PARAM;
 
   private static final ZonedDateTime[] TEST_OPTION_EXPIRY = new ZonedDateTime[] {
       dateUtc(2014, 1, 3), dateUtc(2015, 1, 3), dateUtc(2016, 4, 21), dateUtc(2017, 1, 3)};

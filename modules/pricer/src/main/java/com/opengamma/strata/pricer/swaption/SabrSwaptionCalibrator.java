@@ -37,7 +37,7 @@ import com.opengamma.strata.math.impl.statistics.leastsquare.LeastSquareResultsW
 import com.opengamma.strata.pricer.impl.option.BlackFormulaRepository;
 import com.opengamma.strata.pricer.impl.volatility.smile.SabrFormulaData;
 import com.opengamma.strata.pricer.impl.volatility.smile.SabrModelFitter;
-import com.opengamma.strata.pricer.model.SabrInterestRateSurfaceParameters;
+import com.opengamma.strata.pricer.model.SabrInterestRateParameters;
 import com.opengamma.strata.pricer.model.SabrVolatilityFormula;
 import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.pricer.option.TenorRawOptionData;
@@ -305,7 +305,7 @@ public class SabrSwaptionCalibrator {
         .of(metadataRho, timeToExpiryArray, timeTenorArray, rhoArray, interpolator);
     InterpolatedNodalSurface nuSurface = InterpolatedNodalSurface
         .of(metadataNu, timeToExpiryArray, timeTenorArray, nuArray, interpolator);
-    SabrInterestRateSurfaceParameters params = SabrInterestRateSurfaceParameters.of(
+    SabrInterestRateParameters params = SabrInterestRateParameters.of(
         alphaSurface, betaSurface, rhoSurface, nuSurface, shiftSurface, sabrVolatilityFormula);
     return SabrParametersSwaptionVolatilities.builder()
         .name(name)
@@ -462,7 +462,7 @@ public class SabrSwaptionCalibrator {
         .withParameterMetadata(parameterMetadata);
     InterpolatedNodalSurface alphaSurface = InterpolatedNodalSurface
         .of(metadataAlpha, timeToExpiryArray, timeTenorArray, alphaArray, interpolator);
-    SabrInterestRateSurfaceParameters params = SabrInterestRateSurfaceParameters.of(
+    SabrInterestRateParameters params = SabrInterestRateParameters.of(
         alphaSurface, sabr.getParameters().getBetaSurface(), sabr.getParameters().getRhoSurface(),
         sabr.getParameters().getNuSurface(), sabr.getParameters().getShiftSurface(), sabrVolatilityFormula);
     return SabrParametersSwaptionVolatilities.builder()

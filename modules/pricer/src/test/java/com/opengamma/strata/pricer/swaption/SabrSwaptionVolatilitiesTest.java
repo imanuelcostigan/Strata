@@ -31,7 +31,7 @@ import com.opengamma.strata.market.param.CurrencyParameterSensitivity;
 import com.opengamma.strata.market.param.UnitParameterSensitivity;
 import com.opengamma.strata.market.sensitivity.PointSensitivities;
 import com.opengamma.strata.market.surface.SurfaceName;
-import com.opengamma.strata.pricer.model.SabrInterestRateSurfaceParameters;
+import com.opengamma.strata.pricer.model.SabrInterestRateParameters;
 import com.opengamma.strata.product.swap.type.FixedIborSwapConvention;
 
 /**
@@ -44,7 +44,7 @@ public class SabrSwaptionVolatilitiesTest {
   private static final LocalTime TIME = LocalTime.of(10, 0);
   private static final ZoneId ZONE = ZoneId.of("Europe/London");
   private static final ZonedDateTime DATE_TIME = DATE.atTime(TIME).atZone(ZONE);
-  private static final SabrInterestRateSurfaceParameters PARAM = SwaptionSabrRateVolatilityDataSet.SABR_PARAM_SHIFT_USD;
+  private static final SabrInterestRateParameters PARAM = SwaptionSabrRateVolatilityDataSet.SABR_PARAM_SHIFT_USD;
   private static final FixedIborSwapConvention CONV = SwaptionSabrRateVolatilityDataSet.SWAP_CONVENTION_USD;
 
   private static final ZonedDateTime[] TEST_OPTION_EXPIRY = new ZonedDateTime[] {

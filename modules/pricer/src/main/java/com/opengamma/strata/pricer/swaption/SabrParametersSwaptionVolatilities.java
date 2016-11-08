@@ -42,7 +42,7 @@ import com.opengamma.strata.market.sensitivity.PointSensitivities;
 import com.opengamma.strata.market.sensitivity.PointSensitivity;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.pricer.impl.option.BlackFormulaRepository;
-import com.opengamma.strata.pricer.model.SabrInterestRateSurfaceParameters;
+import com.opengamma.strata.pricer.model.SabrInterestRateParameters;
 import com.opengamma.strata.product.common.PutCall;
 import com.opengamma.strata.product.swap.type.FixedIborSwapConvention;
 
@@ -84,7 +84,7 @@ public final class SabrParametersSwaptionVolatilities
    * The y-value of the surface is the swap tenor, as a year fraction rounded to the month.
    */
   @PropertyDefinition(validate = "notNull")
-  private final SabrInterestRateSurfaceParameters parameters;
+  private final SabrInterestRateParameters parameters;
   /**
    * The sensitivity of the Alpha parameters to the raw data used for calibration.
    * <p>
@@ -128,7 +128,7 @@ public final class SabrParametersSwaptionVolatilities
       SwaptionVolatilitiesName name,
       FixedIborSwapConvention convention,
       ZonedDateTime valuationDateTime,
-      SabrInterestRateSurfaceParameters parameters) {
+      SabrInterestRateParameters parameters) {
 
     return new SabrParametersSwaptionVolatilities(name, convention, valuationDateTime, parameters, null, null, null, null);
   }
@@ -180,7 +180,7 @@ public final class SabrParametersSwaptionVolatilities
 
   @Override
   public SabrParametersSwaptionVolatilities withParameter(int parameterIndex, double newValue) {
-    SabrInterestRateSurfaceParameters updated = parameters.withParameter(parameterIndex, newValue);
+    SabrInterestRateParameters updated = parameters.withParameter(parameterIndex, newValue);
     return new SabrParametersSwaptionVolatilities(
         name,
         convention,
@@ -194,7 +194,7 @@ public final class SabrParametersSwaptionVolatilities
 
   @Override
   public SabrParametersSwaptionVolatilities withPerturbation(ParameterPerturbation perturbation) {
-    SabrInterestRateSurfaceParameters updated = parameters.withPerturbation(perturbation);
+    SabrInterestRateParameters updated = parameters.withPerturbation(perturbation);
     return new SabrParametersSwaptionVolatilities(
         name,
         convention,
@@ -359,7 +359,7 @@ public final class SabrParametersSwaptionVolatilities
       SwaptionVolatilitiesName name,
       FixedIborSwapConvention convention,
       ZonedDateTime valuationDateTime,
-      SabrInterestRateSurfaceParameters parameters,
+      SabrInterestRateParameters parameters,
       List<DoubleArray> dataSensitivityAlpha,
       List<DoubleArray> dataSensitivityBeta,
       List<DoubleArray> dataSensitivityRho,
@@ -434,7 +434,7 @@ public final class SabrParametersSwaptionVolatilities
    * The y-value of the surface is the swap tenor, as a year fraction rounded to the month.
    * @return the value of the property, not null
    */
-  public SabrInterestRateSurfaceParameters getParameters() {
+  public SabrInterestRateParameters getParameters() {
     return parameters;
   }
 
@@ -568,8 +568,8 @@ public final class SabrParametersSwaptionVolatilities
     /**
      * The meta-property for the {@code parameters} property.
      */
-    private final MetaProperty<SabrInterestRateSurfaceParameters> parameters = DirectMetaProperty.ofImmutable(
-        this, "parameters", SabrParametersSwaptionVolatilities.class, SabrInterestRateSurfaceParameters.class);
+    private final MetaProperty<SabrInterestRateParameters> parameters = DirectMetaProperty.ofImmutable(
+        this, "parameters", SabrParametersSwaptionVolatilities.class, SabrInterestRateParameters.class);
     /**
      * The meta-property for the {@code dataSensitivityAlpha} property.
      */
@@ -681,7 +681,7 @@ public final class SabrParametersSwaptionVolatilities
      * The meta-property for the {@code parameters} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<SabrInterestRateSurfaceParameters> parameters() {
+    public MetaProperty<SabrInterestRateParameters> parameters() {
       return parameters;
     }
 
@@ -761,7 +761,7 @@ public final class SabrParametersSwaptionVolatilities
     private SwaptionVolatilitiesName name;
     private FixedIborSwapConvention convention;
     private ZonedDateTime valuationDateTime;
-    private SabrInterestRateSurfaceParameters parameters;
+    private SabrInterestRateParameters parameters;
     private List<DoubleArray> dataSensitivityAlpha;
     private List<DoubleArray> dataSensitivityBeta;
     private List<DoubleArray> dataSensitivityRho;
@@ -827,7 +827,7 @@ public final class SabrParametersSwaptionVolatilities
           this.valuationDateTime = (ZonedDateTime) newValue;
           break;
         case 458736106:  // parameters
-          this.parameters = (SabrInterestRateSurfaceParameters) newValue;
+          this.parameters = (SabrInterestRateParameters) newValue;
           break;
         case 1650101705:  // dataSensitivityAlpha
           this.dataSensitivityAlpha = (List<DoubleArray>) newValue;
@@ -929,7 +929,7 @@ public final class SabrParametersSwaptionVolatilities
      * @param parameters  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder parameters(SabrInterestRateSurfaceParameters parameters) {
+    public Builder parameters(SabrInterestRateParameters parameters) {
       JodaBeanUtils.notNull(parameters, "parameters");
       this.parameters = parameters;
       return this;

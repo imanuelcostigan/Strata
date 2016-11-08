@@ -43,7 +43,7 @@ import com.opengamma.strata.market.param.UnitParameterSensitivity;
 import com.opengamma.strata.market.sensitivity.PointSensitivities;
 import com.opengamma.strata.market.sensitivity.PointSensitivity;
 import com.opengamma.strata.pricer.impl.option.BlackFormulaRepository;
-import com.opengamma.strata.pricer.model.SabrInterestRateCurveParameters;
+import com.opengamma.strata.pricer.model.SabrParameters;
 import com.opengamma.strata.product.common.PutCall;
 
 /**
@@ -83,7 +83,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
    * The x-value of the curve is the expiry, as a year fraction.
    */
   @PropertyDefinition(validate = "notNull")
-  private final SabrInterestRateCurveParameters parameters;
+  private final SabrParameters parameters;
   /**
    * The sensitivity of the Alpha parameters to the raw data used for calibration.
    * <p>
@@ -127,7 +127,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       ZonedDateTime valuationDateTime,
-      SabrInterestRateCurveParameters parameters) {
+      SabrParameters parameters) {
 
     return new SabrParametersIborCapletFloorletVolatilities(name, index, valuationDateTime, parameters, null, null, null, null);
   }
@@ -179,7 +179,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
 
   @Override
   public SabrParametersIborCapletFloorletVolatilities withParameter(int parameterIndex, double newValue) {
-    SabrInterestRateCurveParameters updated = parameters.withParameter(parameterIndex, newValue);
+    SabrParameters updated = parameters.withParameter(parameterIndex, newValue);
     return new SabrParametersIborCapletFloorletVolatilities(
         name,
         index,
@@ -193,7 +193,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
 
   @Override
   public SabrParametersIborCapletFloorletVolatilities withPerturbation(ParameterPerturbation perturbation) {
-    SabrInterestRateCurveParameters updated = parameters.withPerturbation(perturbation);
+    SabrParameters updated = parameters.withPerturbation(perturbation);
     return new SabrParametersIborCapletFloorletVolatilities(
         name,
         index,
@@ -352,7 +352,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       ZonedDateTime valuationDateTime,
-      SabrInterestRateCurveParameters parameters,
+      SabrParameters parameters,
       List<DoubleArray> dataSensitivityAlpha,
       List<DoubleArray> dataSensitivityBeta,
       List<DoubleArray> dataSensitivityRho,
@@ -428,7 +428,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
    * The x-value of the curve is the expiry, as a year fraction.
    * @return the value of the property, not null
    */
-  public SabrInterestRateCurveParameters getParameters() {
+  public SabrParameters getParameters() {
     return parameters;
   }
 
@@ -562,8 +562,8 @@ public final class SabrParametersIborCapletFloorletVolatilities
     /**
      * The meta-property for the {@code parameters} property.
      */
-    private final MetaProperty<SabrInterestRateCurveParameters> parameters = DirectMetaProperty.ofImmutable(
-        this, "parameters", SabrParametersIborCapletFloorletVolatilities.class, SabrInterestRateCurveParameters.class);
+    private final MetaProperty<SabrParameters> parameters = DirectMetaProperty.ofImmutable(
+        this, "parameters", SabrParametersIborCapletFloorletVolatilities.class, SabrParameters.class);
     /**
      * The meta-property for the {@code dataSensitivityAlpha} property.
      */
@@ -675,7 +675,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
      * The meta-property for the {@code parameters} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<SabrInterestRateCurveParameters> parameters() {
+    public MetaProperty<SabrParameters> parameters() {
       return parameters;
     }
 
@@ -755,7 +755,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
     private IborCapletFloorletVolatilitiesName name;
     private IborIndex index;
     private ZonedDateTime valuationDateTime;
-    private SabrInterestRateCurveParameters parameters;
+    private SabrParameters parameters;
     private List<DoubleArray> dataSensitivityAlpha;
     private List<DoubleArray> dataSensitivityBeta;
     private List<DoubleArray> dataSensitivityRho;
@@ -821,7 +821,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
           this.valuationDateTime = (ZonedDateTime) newValue;
           break;
         case 458736106:  // parameters
-          this.parameters = (SabrInterestRateCurveParameters) newValue;
+          this.parameters = (SabrParameters) newValue;
           break;
         case 1650101705:  // dataSensitivityAlpha
           this.dataSensitivityAlpha = (List<DoubleArray>) newValue;
@@ -924,7 +924,7 @@ public final class SabrParametersIborCapletFloorletVolatilities
      * @param parameters  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder parameters(SabrInterestRateCurveParameters parameters) {
+    public Builder parameters(SabrParameters parameters) {
       JodaBeanUtils.notNull(parameters, "parameters");
       this.parameters = parameters;
       return this;

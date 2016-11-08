@@ -36,7 +36,7 @@ import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.market.surface.Surfaces;
 import com.opengamma.strata.market.surface.interpolator.GridSurfaceInterpolator;
 import com.opengamma.strata.market.surface.interpolator.SurfaceInterpolator;
-import com.opengamma.strata.pricer.model.SabrInterestRateSurfaceParameters;
+import com.opengamma.strata.pricer.model.SabrInterestRateParameters;
 import com.opengamma.strata.pricer.model.SabrVolatilityFormula;
 import com.opengamma.strata.pricer.rate.ImmutableRatesProvider;
 import com.opengamma.strata.product.swap.type.FixedIborSwapConvention;
@@ -135,13 +135,13 @@ public class SwaptionSabrRateVolatilityDataSet {
       DoubleArray.copyOf(TENOR_NODE_USD),
       DoubleArray.copyOf(NU_NODE_USD),
       INTERPOLATOR_2D);
-  static final SabrInterestRateSurfaceParameters SABR_PARAM_USD = SabrInterestRateSurfaceParameters.of(
+  static final SabrInterestRateParameters SABR_PARAM_USD = SabrInterestRateParameters.of(
       SURFACE_ALPHA_USD, SURFACE_BETA_USD, SURFACE_RHO_USD, SURFACE_NU_USD, SabrVolatilityFormula.hagan());
 
   static final double SHIFT = 0.025;
   private static final DefaultSurfaceMetadata META_SHIFT = DefaultSurfaceMetadata.of("Test-SABR-Shift");
   private static final ConstantSurface SURFACE_SHIFT_USD = ConstantSurface.of(META_SHIFT, SHIFT);
-  static final SabrInterestRateSurfaceParameters SABR_PARAM_SHIFT_USD = SabrInterestRateSurfaceParameters.of(
+  static final SabrInterestRateParameters SABR_PARAM_SHIFT_USD = SabrInterestRateParameters.of(
       SURFACE_ALPHA_USD,
       SURFACE_BETA_USD,
       SURFACE_RHO_USD,
@@ -256,9 +256,9 @@ public class SwaptionSabrRateVolatilityDataSet {
       INTERPOLATOR_2D);
   private static final ConstantSurface SURFACE_SHIFT_EUR = ConstantSurface.of(META_SHIFT, SHIFT);
 
-  static final SabrInterestRateSurfaceParameters SABR_PARAM_EUR = SabrInterestRateSurfaceParameters.of(
+  static final SabrInterestRateParameters SABR_PARAM_EUR = SabrInterestRateParameters.of(
       SURFACE_ALPHA_EUR, SURFACE_BETA_EUR, SURFACE_RHO_EUR, SURFACE_NU_EUR, SabrVolatilityFormula.hagan());
-  static final SabrInterestRateSurfaceParameters SABR_PARAM_SHIFT_EUR = SabrInterestRateSurfaceParameters.of(SURFACE_ALPHA_EUR,
+  static final SabrInterestRateParameters SABR_PARAM_SHIFT_EUR = SabrInterestRateParameters.of(SURFACE_ALPHA_EUR,
       SURFACE_BETA_EUR, SURFACE_RHO_EUR, SURFACE_NU_EUR, SURFACE_SHIFT_EUR, SabrVolatilityFormula.hagan());
 
   /**

@@ -33,7 +33,7 @@ import com.opengamma.strata.math.impl.integration.RungeKuttaIntegrator1D;
 import com.opengamma.strata.pricer.ZeroRateSensitivity;
 import com.opengamma.strata.pricer.impl.option.SabrExtrapolationRightFunction;
 import com.opengamma.strata.pricer.impl.volatility.smile.SabrFormulaData;
-import com.opengamma.strata.pricer.model.SabrInterestRateSurfaceParameters;
+import com.opengamma.strata.pricer.model.SabrInterestRateParameters;
 import com.opengamma.strata.pricer.model.SabrVolatilityFormula;
 import com.opengamma.strata.pricer.rate.ImmutableRatesProvider;
 import com.opengamma.strata.pricer.rate.RatesProvider;
@@ -560,16 +560,16 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     CurrencyParameterSensitivities computedFloor =
         volatilities.parameterSensitivity(pvFloorPoint);
 
-    SabrInterestRateSurfaceParameters sabr = volatilities.getParameters();
+    SabrInterestRateParameters sabr = volatilities.getParameters();
     // alpha surface
     InterpolatedNodalSurface surfaceAlpha = (InterpolatedNodalSurface) sabr.getAlphaSurface();
     CurrencyParameterSensitivity sensiCouponAlpha = computedCoupon.getSensitivity(surfaceAlpha.getName(), EUR);
     int nParamsAlpha = surfaceAlpha.getParameterCount();
     for (int i = 0; i < nParamsAlpha; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceAlpha, i);
-      SabrInterestRateSurfaceParameters sabrUp = SabrInterestRateSurfaceParameters.of(bumpedSurfaces[0], sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrUp = SabrInterestRateParameters.of(bumpedSurfaces[0], sabr.getBetaSurface(),
           sabr.getRhoSurface(), sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateSurfaceParameters sabrDw = SabrInterestRateSurfaceParameters.of(bumpedSurfaces[1], sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrDw = SabrInterestRateParameters.of(bumpedSurfaces[1], sabr.getBetaSurface(),
           sabr.getRhoSurface(), sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
@@ -585,9 +585,9 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     int nParamsBeta = surfaceBeta.getParameterCount();
     for (int i = 0; i < nParamsBeta; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceBeta, i);
-      SabrInterestRateSurfaceParameters sabrUp = SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), bumpedSurfaces[0],
+      SabrInterestRateParameters sabrUp = SabrInterestRateParameters.of(sabr.getAlphaSurface(), bumpedSurfaces[0],
           sabr.getRhoSurface(), sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateSurfaceParameters sabrDw = SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), bumpedSurfaces[1],
+      SabrInterestRateParameters sabrDw = SabrInterestRateParameters.of(sabr.getAlphaSurface(), bumpedSurfaces[1],
           sabr.getRhoSurface(), sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
@@ -603,11 +603,11 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     int nParamsRho = surfaceRho.getParameterCount();
     for (int i = 0; i < nParamsRho; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceRho, i);
-      SabrInterestRateSurfaceParameters sabrUp =
-          SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrUp =
+          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           bumpedSurfaces[0], sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateSurfaceParameters sabrDw =
-          SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrDw =
+          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           bumpedSurfaces[1], sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
@@ -623,11 +623,11 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     int nParamsNu = surfaceNu.getParameterCount();
     for (int i = 0; i < nParamsNu; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceNu, i);
-      SabrInterestRateSurfaceParameters sabrUp =
-          SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrUp =
+          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           sabr.getRhoSurface(), bumpedSurfaces[0], sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateSurfaceParameters sabrDw =
-          SabrInterestRateSurfaceParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrDw =
+          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           sabr.getRhoSurface(), bumpedSurfaces[1], sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
@@ -647,7 +647,7 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
   }
 
   private SabrParametersSwaptionVolatilities replaceSabrParameters(
-      SabrInterestRateSurfaceParameters sabrParams,
+      SabrInterestRateParameters sabrParams,
       SabrParametersSwaptionVolatilities orgVols) {
     return SabrParametersSwaptionVolatilities.of(
         SwaptionVolatilitiesName.of("Test-SABR"), orgVols.getConvention(), orgVols.getValuationDateTime(), sabrParams);
@@ -840,7 +840,7 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
       ResolvedSwapLeg fixedLeg = swap.getLegs(SwapLegType.FIXED).get(0);
       this.nbFixedPeriod = fixedLeg.getPaymentPeriods().size();
       this.eta = eta;
-      SabrInterestRateSurfaceParameters params = swaptionVolatilities.getParameters();
+      SabrInterestRateParameters params = swaptionVolatilities.getParameters();
       SabrFormulaData sabrPoint = SabrFormulaData.of(params.alpha(timeToExpiry, tenor),
           params.beta(timeToExpiry, tenor), params.rho(timeToExpiry, tenor), params.nu(timeToExpiry, tenor));
       this.shift = params.shift(timeToExpiry, tenor);

@@ -17,10 +17,10 @@ import com.opengamma.strata.market.curve.InterpolatedNodalCurve;
 import com.opengamma.strata.market.param.ParameterMetadata;
 
 /**
- * Test {@link SabrInterestRateCurveParameters}.
+ * Test {@link SabrParameters}.
  */
 @Test
-public class SabrInterestRateCurveParametersTest {
+public class SabrParametersTest {
 
   private static final InterpolatedNodalCurve ALPHA_CURVE =
       InterpolatedNodalCurve.of(Curves.sabrParameterByExpiry("SabrAlpha", ACT_ACT_ISDA, ValueType.SABR_ALPHA),
@@ -35,8 +35,8 @@ public class SabrInterestRateCurveParametersTest {
       InterpolatedNodalCurve.of(Curves.sabrParameterByExpiry("SabrNu", ACT_ACT_ISDA, ValueType.SABR_NU),
       DoubleArray.of(0, 10), DoubleArray.of(0.5, 0.5), LINEAR);
   private static final SabrVolatilityFormula FORMULA = SabrVolatilityFormula.hagan();
-  private static final SabrInterestRateCurveParameters PARAMETERS =
-      SabrInterestRateCurveParameters.of(ALPHA_CURVE, BETA_CURVE, RHO_CURVE, NU_CURVE, FORMULA);
+  private static final SabrParameters PARAMETERS =
+      SabrParameters.of(ALPHA_CURVE, BETA_CURVE, RHO_CURVE, NU_CURVE, FORMULA);
 
   public void getter() {
     assertEquals(PARAMETERS.getAlphaCurve(), ALPHA_CURVE);
@@ -88,8 +88,8 @@ public class SabrInterestRateCurveParametersTest {
   public void negativeRates() {
     double shift = 0.05;
     Curve surface = ConstantCurve.of("shfit", shift);
-    SabrInterestRateCurveParameters params =
-        SabrInterestRateCurveParameters.of(ALPHA_CURVE, BETA_CURVE, RHO_CURVE, NU_CURVE, surface, FORMULA);
+    SabrParameters params =
+        SabrParameters.of(ALPHA_CURVE, BETA_CURVE, RHO_CURVE, NU_CURVE, surface, FORMULA);
     double expiry = 2.0;
     assertEquals(params.alpha(expiry), ALPHA_CURVE.yValue(expiry));
     assertEquals(params.beta(expiry), BETA_CURVE.yValue(expiry));
@@ -112,8 +112,8 @@ public class SabrInterestRateCurveParametersTest {
   }
 
   public void perturbation() {
-    SabrInterestRateCurveParameters test = PARAMETERS.withPerturbation((i, v, m) -> (2d + i) * v);
-    SabrInterestRateCurveParameters expected = PARAMETERS;
+    SabrParameters test = PARAMETERS.withPerturbation((i, v, m) -> (2d + i) * v);
+    SabrParameters expected = PARAMETERS;
     for (int i = 0; i < PARAMETERS.getParameterCount(); ++i) {
       expected = expected.withParameter(i, (2d + i) * expected.getParameter(i));
     }

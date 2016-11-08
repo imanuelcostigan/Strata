@@ -25,7 +25,7 @@ import com.opengamma.strata.market.curve.DefaultCurveMetadata;
 import com.opengamma.strata.market.curve.InterpolatedNodalCurve;
 import com.opengamma.strata.market.curve.SimpleCurveParameterMetadata;
 import com.opengamma.strata.market.param.ParameterMetadata;
-import com.opengamma.strata.pricer.model.SabrInterestRateCurveParameters;
+import com.opengamma.strata.pricer.model.SabrParameters;
 import com.opengamma.strata.pricer.model.SabrVolatilityFormula;
 import com.opengamma.strata.pricer.rate.ImmutableRatesProvider;
 
@@ -72,7 +72,7 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
       META_RHO, RHO_TIME, RHO_VALUE_FLAT, LINEAR);
   private static final InterpolatedNodalCurve CURVE_NU_FLAT = InterpolatedNodalCurve.of(
       META_NU, NU_TIME, NU_VALUE_FLAT, LINEAR);
-  static final SabrInterestRateCurveParameters SABR_PARAM_FLAT = SabrInterestRateCurveParameters.of(
+  static final SabrParameters SABR_PARAM_FLAT = SabrParameters.of(
       CURVE_ALPHA_FLAT, CURVE_BETA_FLAT, CURVE_RHO_FLAT, CURVE_NU_FLAT, SabrVolatilityFormula.hagan());
 
   private static final DoubleArray ALPHA_VALUE = DoubleArray.of(0.05, 0.05, 0.05, 0.05, 0.05, 0.05);
@@ -96,7 +96,7 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
       .build();
   private static final InterpolatedNodalCurve CURVE_SHIFT = InterpolatedNodalCurve.of(
       META_SHIFT, SHIFT_TIME, SHIFT_VALUE, LINEAR);
-  static final SabrInterestRateCurveParameters SABR_PARAM = SabrInterestRateCurveParameters.of(
+  static final SabrParameters SABR_PARAM = SabrParameters.of(
       CURVE_ALPHA, CURVE_BETA, CURVE_RHO, CURVE_NU, CURVE_SHIFT, SabrVolatilityFormula.hagan());
 
   static final IborCapletFloorletVolatilitiesName NAME = IborCapletFloorletVolatilitiesName.of("Test-SABR");

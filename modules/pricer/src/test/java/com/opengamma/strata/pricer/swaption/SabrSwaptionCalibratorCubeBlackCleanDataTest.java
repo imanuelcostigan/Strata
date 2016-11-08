@@ -162,6 +162,30 @@ public class SabrSwaptionCalibratorCubeBlackCleanDataTest {
         }
       }
     }
+
+    double shift1 = 0.001;
+    Surface shiftSurface1 = ConstantSurface.of("Shift", shift1);
+    SabrParametersSwaptionVolatilities calibrated1 = SABR_CALIBRATION.calibrateWithFixedBetaAndShift(
+        DEFINITION, CALIBRATION_TIME, DATA_SPARSE, MULTICURVE, betaSurface, shiftSurface1);
+    int loopexpiry = 1;
+    int looptenor = 1;
+    int loopmoney = 1;
+    LocalDate expiry = EUR_FIXED_1Y_EURIBOR_6M.getFloatingLeg().getStartDateBusinessDayAdjustment()
+        .adjust(CALIBRATION_DATE.plus(EXPIRIES.get(loopexpiry)), REF_DATA);
+    LocalDate effectiveDate = EUR_FIXED_1Y_EURIBOR_6M.calculateSpotDateFromTradeDate(expiry, REF_DATA);
+    LocalDate endDate = effectiveDate.plus(TENORS.get(looptenor));
+    SwapTrade swap = EUR_FIXED_1Y_EURIBOR_6M
+        .toTrade(CALIBRATION_DATE, effectiveDate, endDate, BuySell.BUY, 1.0, 0.0);
+    ZonedDateTime expiryDateTime = expiry.atTime(11, 0).atZone(ZoneId.of("Europe/Berlin"));
+    double time = calibrated.relativeTime(expiryDateTime);
+    double tenor = TENORS.get(looptenor).get(ChronoUnit.YEARS);
+    double parRate = SWAP_PRICER.parRate(swap.resolve(REF_DATA).getProduct(), MULTICURVE);
+    double strike = parRate + MONEYNESS.get(loopmoney);
+    System.out.println(BlackFormulaRepository.price(parRate + shift, 0.5 * strike + shift,
+        time, calibrated.volatility(expiryDateTime, tenor, strike, parRate), true) + "\t" +
+        BlackFormulaRepository.price(parRate + shift1, 0.5 * strike + shift1,
+            time, calibrated1.volatility(expiryDateTime, tenor, strike, parRate), true));
+
   }
 
   @Test(enabled = true)
