@@ -603,11 +603,9 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     int nParamsRho = surfaceRho.getParameterCount();
     for (int i = 0; i < nParamsRho; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceRho, i);
-      SabrInterestRateParameters sabrUp =
-          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrUp = SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           bumpedSurfaces[0], sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateParameters sabrDw =
-          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrDw = SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           bumpedSurfaces[1], sabr.getNuSurface(), sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
@@ -623,11 +621,9 @@ public class SabrExtrapolationReplicationCmsPeriodPricerTest {
     int nParamsNu = surfaceNu.getParameterCount();
     for (int i = 0; i < nParamsNu; ++i) {
       InterpolatedNodalSurface[] bumpedSurfaces = bumpSurface(surfaceNu, i);
-      SabrInterestRateParameters sabrUp =
-          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrUp = SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           sabr.getRhoSurface(), bumpedSurfaces[0], sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
-      SabrInterestRateParameters sabrDw =
-          SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
+      SabrInterestRateParameters sabrDw = SabrInterestRateParameters.of(sabr.getAlphaSurface(), sabr.getBetaSurface(),
           sabr.getRhoSurface(), bumpedSurfaces[1], sabr.getShiftSurface(), SabrVolatilityFormula.hagan());
       testSensitivityValue(
           coupon, caplet, foorlet, ratesProvider, i,
