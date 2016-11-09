@@ -78,7 +78,6 @@ public class SabrParametersIborCapletFloorletVolatilitiesTest {
       assertEquals(test.withPerturbation((n, v, m) -> 2d * v), SabrParametersIborCapletFloorletVolatilities.of(
           NAME, EUR_EURIBOR_3M, DATE_TIME, PARAM.withPerturbation((n, v, m) -> 2d * v)));
     }
-//    assertTrue(DoubleArrayMath.fuzzyEquals(array1, array2, tolerance))
   }
 
   public void test_findData() {

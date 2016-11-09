@@ -7,7 +7,6 @@ package com.opengamma.strata.pricer.capfloor;
 
 import static com.opengamma.strata.basics.currency.Currency.EUR;
 import static com.opengamma.strata.basics.date.DayCounts.ACT_ACT_ISDA;
-import static com.opengamma.strata.basics.index.IborIndices.EUR_EURIBOR_3M;
 import static com.opengamma.strata.market.curve.interpolator.CurveInterpolators.LINEAR;
 
 import java.time.LocalDate;
@@ -16,8 +15,11 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.array.DoubleArray;
+import com.opengamma.strata.collect.timeseries.LocalDateDoubleTimeSeries;
 import com.opengamma.strata.market.ValueType;
+import com.opengamma.strata.market.curve.ConstantCurve;
 import com.opengamma.strata.market.curve.CurveMetadata;
 import com.opengamma.strata.market.curve.CurveName;
 import com.opengamma.strata.market.curve.Curves;
@@ -40,12 +42,12 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
   private static final CurveMetadata EUR_DSC_META = Curves.zeroRates(EUR_DSC_NAME, ACT_ACT_ISDA);
   private static final InterpolatedNodalCurve EUR_DSC_CURVE =
       InterpolatedNodalCurve.of(EUR_DSC_META, EUR_DSC_TIME, EUR_DSC_RATE, LINEAR);
-  private static final DoubleArray EUR_FWD3_TIME = DoubleArray.of(0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0);
-  private static final DoubleArray EUR_FWD3_RATE = DoubleArray.of(0.0150, 0.0125, 0.0150, 0.0175, 0.0175, 0.0190, 0.0200, 0.0210);
-  private static final CurveName EUR_FWD3_NAME = CurveName.of("EUR-FWD3");
-  private static final CurveMetadata EUR_FWD3_META = Curves.zeroRates(EUR_FWD3_NAME, ACT_ACT_ISDA);
-  private static final InterpolatedNodalCurve EUR_FWD3_CURVE =
-      InterpolatedNodalCurve.of(EUR_FWD3_META, EUR_FWD3_TIME, EUR_FWD3_RATE, LINEAR);
+  private static final DoubleArray EUR_FWD_TIME = DoubleArray.of(0.0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0);
+  private static final DoubleArray EUR_FWD_RATE = DoubleArray.of(0.0150, 0.0125, 0.0150, 0.0175, 0.0175, 0.0190, 0.0200, 0.0210);
+  private static final CurveName EUR_FWD_NAME = CurveName.of("EUR-FWD");
+  private static final CurveMetadata EUR_FWD_META = Curves.zeroRates(EUR_FWD_NAME, ACT_ACT_ISDA);
+  private static final InterpolatedNodalCurve EUR_FWD_CURVE =
+      InterpolatedNodalCurve.of(EUR_FWD_META, EUR_FWD_TIME, EUR_FWD_RATE, LINEAR);
 
   private static final DoubleArray ALPHA_TIME = DoubleArray.of(0.0, 0.5, 1.0, 2.0, 5.0, 10.0);
   private static final DoubleArray BETA_TIME = DoubleArray.of(0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 100.0);
@@ -99,6 +101,12 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
   static final SabrParameters SABR_PARAM = SabrParameters.of(
       CURVE_ALPHA, CURVE_BETA, CURVE_RHO, CURVE_NU, CURVE_SHIFT, SabrVolatilityFormula.hagan());
 
+  static final double CONST_SHIFT = 0.015;
+  private static final DefaultCurveMetadata META_CONST_SHIFT = DefaultCurveMetadata.of("Test-SABR-Shift");
+  private static final ConstantCurve SURFACE_CONST_SHIFT = ConstantCurve.of(META_CONST_SHIFT, CONST_SHIFT);
+  static final SabrParameters SABR_PARAM_CONST_SHIFT = SabrParameters.of(
+      CURVE_ALPHA, CURVE_BETA, CURVE_RHO, CURVE_NU, SURFACE_CONST_SHIFT, SabrVolatilityFormula.hagan());
+
   static final IborCapletFloorletVolatilitiesName NAME = IborCapletFloorletVolatilitiesName.of("Test-SABR");
 
   // create a list of SimpleCurveParameterMetadata
@@ -116,12 +124,16 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
    * Obtains {@code ImmutableRatesProvider} for specified valuation date.
    * 
    * @param valuationDate  the valuation date
+   * @param index  the index
+   * @param timeSeries  the time series
    * @return the rates provider
    */
-  public static ImmutableRatesProvider getRatesProvider(LocalDate valuationDate) {
+  public static ImmutableRatesProvider getRatesProvider(LocalDate valuationDate, IborIndex index,
+      LocalDateDoubleTimeSeries timeSeries) {
     return ImmutableRatesProvider.builder(valuationDate)
         .discountCurve(EUR, EUR_DSC_CURVE)
-        .iborIndexCurve(EUR_EURIBOR_3M, EUR_FWD3_CURVE)
+        .iborIndexCurve(index, EUR_FWD_CURVE)
+        .timeSeries(index, timeSeries)
         .build();
   }
 
@@ -129,22 +141,26 @@ public class IborCapletFloorletSabrRateVolatilityDataSet {
    * Obtains {@code SabrParametersIborCapletFloorletVolatilities} with constant SABR parameters for specified valuation date.
    * 
    * @param valuationDate  the valuation date
+   * @param index  the index
    * @return the volatility provider
    */
-  public static SabrParametersIborCapletFloorletVolatilities getVolatilitiesFlatParameters(LocalDate valuationDate) {
+  public static SabrParametersIborCapletFloorletVolatilities getVolatilitiesFlatParameters(
+      LocalDate valuationDate,
+      IborIndex index) {
+
     ZonedDateTime dateTime = valuationDate.atStartOfDay(ZoneOffset.UTC);
-    return SabrParametersIborCapletFloorletVolatilities.of(NAME, EUR_EURIBOR_3M, dateTime, SABR_PARAM_FLAT);
+    return SabrParametersIborCapletFloorletVolatilities.of(NAME, index, dateTime, SABR_PARAM_FLAT);
   }
 
   /**
-   * Obtains {@code SabrParametersIborCapletFloorletVolatilities} for specified valuation date.
+   * Obtains {@code SabrParametersIborCapletFloorletVolatilities} with constant shift for specified valuation date.
    * 
-   * @param valuationDate  the valuation date
+   * @param dateTime  the valuation date time
+   * @param index  the index
    * @return the volatility provider
    */
-  public static SabrParametersIborCapletFloorletVolatilities getVolatilities(LocalDate valuationDate) {
-    ZonedDateTime dateTime = valuationDate.atStartOfDay(ZoneOffset.UTC);
-    return SabrParametersIborCapletFloorletVolatilities.of(NAME, EUR_EURIBOR_3M, dateTime, SABR_PARAM);
+  public static SabrParametersIborCapletFloorletVolatilities getVolatilities(ZonedDateTime dateTime, IborIndex index) {
+    return SabrParametersIborCapletFloorletVolatilities.of(NAME, index, dateTime, SABR_PARAM_CONST_SHIFT);
   }
 
 }
