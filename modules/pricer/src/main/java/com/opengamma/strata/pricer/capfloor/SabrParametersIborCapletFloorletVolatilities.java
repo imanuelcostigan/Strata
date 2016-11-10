@@ -50,8 +50,6 @@ import com.opengamma.strata.product.common.PutCall;
  * Volatility environment for Ibor caplet/floorlet in the SABR model.
  * <p>
  * The volatility is represented in terms of SABR model parameters.
- * <p>
- * The {@code parameterSensitivity()}, {@code priceGamma()} and {@code priceTheta()} methods are not implemented.
  */
 @BeanDefinition
 public final class SabrParametersIborCapletFloorletVolatilities
