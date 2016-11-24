@@ -65,6 +65,17 @@ public final class SabrIborCapletFloorletBootstrapDefinition
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
+      CurveInterpolator timeInterpolator,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    return new SabrIborCapletFloorletBootstrapDefinition(name, index, dayCount, null, null,
+        timeInterpolator, sabrVolatilityFormula);
+  }
+
+  public static SabrIborCapletFloorletBootstrapDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
       double beta,
       CurveInterpolator timeInterpolator,
       SabrVolatilityFormula sabrVolatilityFormula) {

@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ * 
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
 
 import java.time.LocalDate;
@@ -7,11 +12,6 @@ import java.util.function.Function;
 
 import com.opengamma.strata.basics.ReferenceData;
 import com.opengamma.strata.basics.index.IborIndex;
-import com.opengamma.strata.basics.schedule.Frequency;
-import com.opengamma.strata.basics.schedule.PeriodicSchedule;
-import com.opengamma.strata.basics.schedule.RollConventions;
-import com.opengamma.strata.basics.schedule.StubConvention;
-import com.opengamma.strata.basics.value.ValueSchedule;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.market.ValueType;
@@ -20,31 +20,52 @@ import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.pricer.rate.RatesProvider;
-import com.opengamma.strata.product.capfloor.IborCapFloorLeg;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
-import com.opengamma.strata.product.common.PayReceive;
-import com.opengamma.strata.product.swap.IborRateCalculation;
 
+/**
+ * Caplet volatility calibration to cap volatilities.
+ */
 abstract class IborCapletFloorletVolatilityCalibrator {
 
-  // TODO jacobian
-
-  // TODO shift in raw data
-
-  protected final ReferenceData referenceData;
+  /**
+   * The cap/floor pricer. 
+   * <p>
+   * This pricer is used for converting market cap volatilities to cap prices. 
+   */
   protected final VolatilityIborCapFloorLegPricer pricer;
+  /**
+   * The reference data.
+   */
+  protected final ReferenceData referenceData;
 
+  /**
+   * Constructor with cap pricer and reference data.
+   * 
+   * @param pricer  the cap pricer
+   * @param referenceData  the reference data
+   */
   public IborCapletFloorletVolatilityCalibrator(VolatilityIborCapFloorLegPricer pricer, ReferenceData referenceData) {
     this.pricer = ArgChecker.notNull(pricer, "pricer");
     this.referenceData = ArgChecker.notNull(referenceData, "referenceData");
   }
 
-  public abstract IborCapletFloorletVolatilities calibrate(
+  /**
+   * Calibrates caplet volatilities to cap volatilities.
+   * 
+   * @param definition  the caplet volatility definition
+   * @param calibrationDateTime  the calibration time
+   * @param capFloorData  the cap data
+   * @param ratesProvider  the rates provider
+   * @return the calibration result
+   */
+  public abstract IborCapletFloorletVolatilityCalibrationResult calibrate(
       IborCapletFloorletDefinition definition,
       ZonedDateTime calibrationDateTime,
       RawOptionData capFloorData,
       RatesProvider ratesProvider);
 
+  //-------------------------------------------------------------------------
+  // create complete lists of caps, volatilities, strikes, expiries
   protected void reduceRawData(
       IborCapletFloorletDefinition definition,
       RatesProvider ratesProvider,
@@ -60,30 +81,14 @@ abstract class IborCapletFloorletVolatilityCalibrator {
       List<ResolvedIborCapFloorLeg> capList,
       List<Double> priceList) {
 
-    IborIndex index = definition.getIndex();
     int nStrikes = strikes.size();
-    for (int j = 0; j < nStrikes; ++j) {
-      if (Double.isFinite(volatilityData.get(j))) {
-        ResolvedIborCapFloorLeg capFloor = IborCapFloorLeg.builder()
-            .calculation(IborRateCalculation.of(index))
-            .capSchedule(ValueSchedule.of(strikes.get(j)))
-            .currency(index.getCurrency())
-            .notional(ValueSchedule.ALWAYS_1)
-            .paymentSchedule(
-                PeriodicSchedule.of(
-                    startDate,
-                    endDate,
-                    Frequency.of(index.getTenor().getPeriod()),
-                    definition.getBusinessDayAdjustment(),
-                    StubConvention.NONE,
-                    RollConventions.NONE))
-            .payReceive(PayReceive.RECEIVE)
-            .build()
-            .resolve(referenceData);
+    for (int i = 0; i < nStrikes; ++i) {
+      if (Double.isFinite(volatilityData.get(i))) {
+        ResolvedIborCapFloorLeg capFloor = definition.createCap(startDate, endDate, strikes.get(i)).resolve(referenceData);
         capList.add(capFloor);
-        strikeList.add(strikes.get(j));
-        volList.add(volatilityData.get(j));
-        ConstantSurface constVolSurface = ConstantSurface.of(metadata, volatilityData.get(j));
+        strikeList.add(strikes.get(i));
+        volList.add(volatilityData.get(i));
+        ConstantSurface constVolSurface = ConstantSurface.of(metadata, volatilityData.get(i));
         IborCapletFloorletVolatilities vols = volatilityFunction.apply(constVolSurface);
         timeList.add(vols.relativeTime(capFloor.getFinalFixingDate()));
         priceList.add(pricer.presentValue(capFloor, ratesProvider, vols).getAmount());
@@ -92,6 +97,7 @@ abstract class IborCapletFloorletVolatilityCalibrator {
 
   }
 
+  // function creating volatilities object from surface
   protected Function<Surface, IborCapletFloorletVolatilities> volatilitiesFunction(
       IborCapletFloorletDefinition definition,
       ZonedDateTime calibrationDateTime,

@@ -18,23 +18,18 @@ import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
 
 @Test
-public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippingSetup {
+public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletStrippingSetup {
 
-  // TODO test normal vol
-
-  private static final IborCapletFloorletVolatilityBootstrapper CALIBRATOR = IborCapletFloorletVolatilityBootstrapper.DEFAULT;
+  private static final SurfaceIborCapletFloorletVolatilityBootstrapper CALIBRATOR =
+      SurfaceIborCapletFloorletVolatilityBootstrapper.DEFAULT;
   private static final BlackIborCapFloorLegPricer LEG_PRICER_BLACK = BlackIborCapFloorLegPricer.DEFAULT;
   private static final NormalIborCapFloorLegPricer LEG_PRICER_NORMAL = NormalIborCapFloorLegPricer.DEFAULT;
-  private static final double TOL = 1.0e-10;
+  private static final double TOL = 1.0e-14;
 
-  public void recovery_test() {
-    IborCapletFloorletBootstrapDefinition definition =
-        IborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
-            CurveInterpolators.LINEAR, CurveInterpolators.DOUBLE_QUADRATIC);
-
-    DoubleArray timesTotal = DoubleArray.EMPTY;
-    DoubleArray strikesTotal = DoubleArray.EMPTY;
-    DoubleArray volsTotal = DoubleArray.EMPTY;
+  public void recovery_test_blackCurve() {
+    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+        IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, CurveInterpolators.LINEAR,
+        CurveInterpolators.DOUBLE_QUADRATIC);
     for (int i = 0; i < NUM_BLACK_STRIKES; ++i) {
       Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsBlackVols(i);
       List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
@@ -55,17 +50,17 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
     }
   }
 
-  public void recovery_test2() {
-    IborCapletFloorletBootstrapDefinition definition =
-        IborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
-            CurveInterpolators.LINEAR, CurveInterpolators.LINEAR);
-    RawOptionData data =
-        RawOptionData.of(createBlackMaturities(), createBlackStrikes(), ValueType.STRIKE, createFullBlackDataMatrix(),
-        ValueType.BLACK_VOLATILITY);
+  public void recovery_test_blackSurface() {
+    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+        IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, CurveInterpolators.LINEAR,
+        CurveInterpolators.LINEAR);
+    DoubleArray strikes = createBlackStrikes();
+    RawOptionData data = RawOptionData.of(
+        createBlackMaturities(), strikes, ValueType.STRIKE, createFullBlackDataMatrix(), ValueType.BLACK_VOLATILITY);
     BlackIborCapletFloorletExpiryStrikeVolatilities res =
         (BlackIborCapletFloorletExpiryStrikeVolatilities) CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data,
-            RATES_PROVIDER);
-    for (int i = 0; i < NUM_BLACK_STRIKES; ++i) {
+            RATES_PROVIDER).getVolatilities();
+    for (int i = 0; i < strikes.size(); ++i) {
       Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsBlackVols(i);
       List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
       List<Double> vols = capsAndVols.getSecond();
@@ -80,11 +75,10 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
     }
-//
+
 //    final int nSamples = 51;
 //    final int nStrikeSamples = 51;
 //    System.out.print("\n");
-//    DoubleArray strikes = crateBlackStrikes();
 //    for (int i = 0; i < nStrikeSamples; i++) {
 //      System.out.print("\t" + (strikes.get(0) + (strikes.get(strikes.size() - 1) - strikes.get(0)) * i) / (nStrikeSamples - 1));
 //    }
@@ -100,16 +94,16 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
 //    }
   }
 
-  public void recovery_test2Flat() {
-    IborCapletFloorletBootstrapDefinition definition =
-        IborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
+  public void recovery_test_flat() {
+    SurfaceIborCapletFloorletBootstrapDefinition definition =
+        SurfaceIborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
             CurveInterpolators.LINEAR, CurveInterpolators.LINEAR);
     RawOptionData data =
         RawOptionData.of(createBlackMaturities(), createBlackStrikes(), ValueType.STRIKE, createFullFlatBlackDataMatrix(),
             ValueType.BLACK_VOLATILITY);
     BlackIborCapletFloorletExpiryStrikeVolatilities res =
         (BlackIborCapletFloorletExpiryStrikeVolatilities) CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data,
-            RATES_PROVIDER);
+            RATES_PROVIDER).getVolatilities();
     for (int i = 0; i < NUM_BLACK_STRIKES; ++i) {
       Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsFlatBlackVols(i);
       List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
@@ -146,16 +140,16 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
 //    }
   }
 
-  public void recovery_test3() {
-    IborCapletFloorletBootstrapDefinition definition =
-        IborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
+  public void recovery_test_normal2() {
+    SurfaceIborCapletFloorletBootstrapDefinition definition =
+        SurfaceIborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
             CurveInterpolators.LINEAR, CurveInterpolators.DOUBLE_QUADRATIC);
     RawOptionData data =
         RawOptionData.of(createNormalMaturities(), createNormalStrikes(), ValueType.STRIKE, createFullNormalDataMatrix(),
         ValueType.NORMAL_VOLATILITY);
     NormalIborCapletFloorletExpiryStrikeVolatilities res =
         (NormalIborCapletFloorletExpiryStrikeVolatilities) CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data,
-            RATES_PROVIDER);
+            RATES_PROVIDER).getVolatilities();
     for (int i = 0; i < NUM_NORMAL_STRIKES; ++i) {
       Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsNormalVols(i);
       List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
@@ -195,8 +189,8 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
   }
 
   public void recovery_test4() {
-    IborCapletFloorletBootstrapDefinition definition =
-        IborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
+    SurfaceIborCapletFloorletBootstrapDefinition definition =
+        SurfaceIborCapletFloorletBootstrapDefinition.of(IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
             CurveInterpolators.LINEAR, CurveInterpolators.DOUBLE_QUADRATIC);
     RawOptionData data =
         RawOptionData.of(createNormalEquivMaturities(), createNormalEquivStrikes(), ValueType.STRIKE,
@@ -204,7 +198,7 @@ public class IborCapletFloorletVolatilityBootstrapperTest extends CapletStrippin
             ValueType.NORMAL_VOLATILITY);
     NormalIborCapletFloorletExpiryStrikeVolatilities res =
         (NormalIborCapletFloorletExpiryStrikeVolatilities) CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data,
-            RATES_PROVIDER);
+            RATES_PROVIDER).getVolatilities();
     for (int i = 0; i < NUM_BLACK_STRIKES; ++i) {
       Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsNormalEquivVols(i);
       List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
