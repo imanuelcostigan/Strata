@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.testng.annotations.Test;
 
-import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.tuple.Pair;
 import com.opengamma.strata.market.ValueType;
 import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
@@ -51,7 +50,6 @@ public class SabrIborCapletFloorletVolatilityBootstrapperTest extends CapletStri
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 3d);
       }
     }
-//    print(resVols, createBlackStrikes(), 10d);
   }
 
   public void test_recovery_black_shift() {
@@ -79,7 +77,6 @@ public class SabrIborCapletFloorletVolatilityBootstrapperTest extends CapletStri
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 3d);
       }
     }
-//    print(res, createBlackStrikes(), 10d);
   }
 
   public void test_recovery_normal() {
@@ -113,7 +110,6 @@ public class SabrIborCapletFloorletVolatilityBootstrapperTest extends CapletStri
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 3d);
       }
     }
-//    print(res, createNormalEquivStrikes(), 10d);
   }
 
   @Test
@@ -148,29 +144,6 @@ public class SabrIborCapletFloorletVolatilityBootstrapperTest extends CapletStri
         double priceCalib = LEG_PRICER_SABR.presentValue(caps.get(j), RATES_PROVIDER, resVols).getAmount();
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
-    }
-  }
-
-  // print for debugging
-  private void print(IborCapletFloorletVolatilityCalibrationResult res, DoubleArray strikes, double maxTime) {
-    System.out.println(res.getChiSquare());
-    IborCapletFloorletVolatilities vols = res.getVolatilities();
-    final int nSamples = 51;
-    final int nStrikeSamples = 51;
-    System.out.print("\n");
-    for (int i = 0; i < nStrikeSamples; i++) {
-      System.out.print("\t" + (strikes.get(0) + (strikes.get(strikes.size() - 1) - strikes.get(0)) * i) / (nStrikeSamples - 1));
-    }
-    System.out.print("\n");
-    for (int index = 0; index < nSamples; index++) {
-      final double t = 0.25 + index * maxTime / (nSamples - 1);
-      double forward = FWD_CURVE.yValue(t);
-      System.out.print(t);
-      for (int i = 0; i < nStrikeSamples; i++) {
-        double strike = (strikes.get(0) + (strikes.get(strikes.size() - 1) - strikes.get(0)) * i) / (nStrikeSamples - 1);
-        System.out.print("\t" + vols.volatility(t, strike, forward));
-      }
-      System.out.print("\n");
     }
   }
 

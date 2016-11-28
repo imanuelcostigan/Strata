@@ -119,7 +119,7 @@ public final class ResolvedIborCapFloorLeg
    * 
    * @return the fixing date time
    */
-  public ZonedDateTime getFinalFixingDate() {
+  public ZonedDateTime getFinalFixingDateTime() {
     return capletFloorletPeriods.get(capletFloorletPeriods.size() - 1).getFixingDateTime();
   }
 

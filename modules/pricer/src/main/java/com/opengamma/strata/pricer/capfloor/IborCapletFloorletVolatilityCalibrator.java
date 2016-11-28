@@ -5,6 +5,10 @@
  */
 package com.opengamma.strata.pricer.capfloor;
 
+import static com.opengamma.strata.market.ValueType.BLACK_VOLATILITY;
+import static com.opengamma.strata.market.ValueType.NORMAL_VOLATILITY;
+import static com.opengamma.strata.market.ValueType.STRIKE;
+
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -14,7 +18,6 @@ import com.opengamma.strata.basics.ReferenceData;
 import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
-import com.opengamma.strata.market.ValueType;
 import com.opengamma.strata.market.surface.ConstantSurface;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
@@ -23,7 +26,7 @@ import com.opengamma.strata.pricer.rate.RatesProvider;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
 
 /**
- * Caplet volatility calibration to cap volatilities.
+ * Caplet volatilities calibration to cap volatilities.
  */
 abstract class IborCapletFloorletVolatilityCalibrator {
 
@@ -90,11 +93,10 @@ abstract class IborCapletFloorletVolatilityCalibrator {
         volList.add(volatilityData.get(i));
         ConstantSurface constVolSurface = ConstantSurface.of(metadata, volatilityData.get(i));
         IborCapletFloorletVolatilities vols = volatilityFunction.apply(constVolSurface);
-        timeList.add(vols.relativeTime(capFloor.getFinalFixingDate()));
+        timeList.add(vols.relativeTime(capFloor.getFinalFixingDateTime()));
         priceList.add(pricer.presentValue(capFloor, ratesProvider, vols).getAmount());
       }
     }
-
   }
 
   // function creating volatilities object from surface
@@ -104,10 +106,10 @@ abstract class IborCapletFloorletVolatilityCalibrator {
       RawOptionData capFloorData) {
 
     IborIndex index = definition.getIndex();
-    if (capFloorData.getStrikeType().equals(ValueType.STRIKE)) {
-      if (capFloorData.getDataType().equals(ValueType.BLACK_VOLATILITY)) {
+    if (capFloorData.getStrikeType().equals(STRIKE)) {
+      if (capFloorData.getDataType().equals(BLACK_VOLATILITY)) {
         return blackVolatilitiesFunction(index, calibrationDateTime);
-      } else if (capFloorData.getDataType().equals(ValueType.NORMAL_VOLATILITY)) {
+      } else if (capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
         return normalVolatilitiesFunction(index, calibrationDateTime);
       }
       throw new IllegalArgumentException("Data type not supported");

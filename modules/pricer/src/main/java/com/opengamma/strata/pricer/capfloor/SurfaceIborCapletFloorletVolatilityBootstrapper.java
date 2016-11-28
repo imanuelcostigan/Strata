@@ -13,17 +13,14 @@ import java.util.List;
 import java.util.function.Function;
 
 import com.opengamma.strata.basics.ReferenceData;
-import com.opengamma.strata.basics.date.DayCount;
 import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.market.param.CurrencyParameterSensitivities;
 import com.opengamma.strata.market.sensitivity.PointSensitivities;
-import com.opengamma.strata.market.surface.ConstantSurface;
 import com.opengamma.strata.market.surface.InterpolatedNodalSurface;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
-import com.opengamma.strata.market.surface.Surfaces;
 import com.opengamma.strata.pricer.impl.option.GenericImpliedVolatiltySolver;
 import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.pricer.rate.RatesProvider;
@@ -116,44 +113,6 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapper extends IborCapletF
       }
     }
     return IborCapletFloorletVolatilityCalibrationResult.ofRootFind(vols);
-  }
-
-  // TODO remove after checking this can be recovered  
-  public BlackIborCapletFloorletExpiryStrikeVolatilities calibrate(
-      SurfaceIborCapletFloorletBootstrapDefinition definition,
-      ZonedDateTime calibrationDateTime,
-      List<ResolvedIborCapFloorLeg> capFloors,
-      List<Double> volatilities,
-      RatesProvider ratesProvider) {
-
-    int nNodes = capFloors.size();
-    LocalDate calibrationDate = calibrationDateTime.toLocalDate();
-    DayCount dayCount = definition.getDayCount();
-    DoubleArray capVolatilities = DoubleArray.of(nNodes, i -> volatilities.get(i));
-    DoubleArray expirationTimes = DoubleArray.of(
-        nNodes, i -> dayCount.relativeYearFraction(calibrationDate, capFloors.get(i).getFinalFixingDate().toLocalDate()));
-    DoubleArray strikes = DoubleArray.of(nNodes, i -> capFloors.get(i).getCapletFloorletPeriods().get(i).getStrike());
-    SurfaceMetadata metadata = Surfaces.blackVolatilityByExpiryStrike(definition.getName().getName(), dayCount);
-    
-    InterpolatedNodalSurface surface = InterpolatedNodalSurface.of(
-        metadata, expirationTimes, strikes, capVolatilities, definition.getInterpolator());
-    BlackIborCapletFloorletExpiryStrikeVolatilities vols =
-        BlackIborCapletFloorletExpiryStrikeVolatilities.of(definition.getIndex(), calibrationDateTime, surface);
-    DoubleArray prices = DoubleArray.of(
-        capFloors.size(),
-        i -> pricer.presentValue(
-            capFloors.get(i),
-            ratesProvider,
-            BlackIborCapletFloorletExpiryStrikeVolatilities.of( // TODO normal
-                definition.getIndex(), calibrationDateTime, ConstantSurface.of(metadata, volatilities.get(i))))
-            .getAmount());
-    for (int i = 0; i < nNodes; ++i) {
-      Function<Double, double[]> func = getValueVegaFunction(capFloors.get(i), ratesProvider, vols, i);
-      GenericImpliedVolatiltySolver solver = new GenericImpliedVolatiltySolver(func);
-      double capletVol = solver.impliedVolatility(prices.get(i), volatilities.get(i));
-      vols = vols.withParameter(i, capletVol);
-    }
-    return vols;
   }
 
   //-------------------------------------------------------------------------

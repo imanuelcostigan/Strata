@@ -1,7 +1,19 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ * 
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
 
+import static com.opengamma.strata.market.ValueType.BLACK_VOLATILITY;
+import static com.opengamma.strata.market.ValueType.NORMAL_VOLATILITY;
+import static com.opengamma.strata.market.ValueType.SABR_ALPHA;
+import static com.opengamma.strata.market.ValueType.SABR_BETA;
+import static com.opengamma.strata.market.ValueType.SABR_NU;
+import static com.opengamma.strata.market.ValueType.SABR_RHO;
+import static com.opengamma.strata.market.curve.interpolator.CurveExtrapolators.FLAT;
+
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -10,6 +22,8 @@ import java.util.Set;
 import org.joda.beans.Bean;
 import org.joda.beans.BeanDefinition;
 import org.joda.beans.ImmutableBean;
+import org.joda.beans.ImmutablePreBuild;
+import org.joda.beans.ImmutableValidator;
 import org.joda.beans.JodaBeanUtils;
 import org.joda.beans.MetaProperty;
 import org.joda.beans.Property;
@@ -22,91 +36,275 @@ import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 import com.google.common.collect.ImmutableList;
 import com.opengamma.strata.basics.date.DayCount;
 import com.opengamma.strata.basics.index.IborIndex;
-import com.opengamma.strata.market.ValueType;
+import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.market.curve.ConstantCurve;
 import com.opengamma.strata.market.curve.Curve;
 import com.opengamma.strata.market.curve.CurveMetadata;
 import com.opengamma.strata.market.curve.Curves;
+import com.opengamma.strata.market.curve.interpolator.CurveExtrapolator;
 import com.opengamma.strata.market.curve.interpolator.CurveInterpolator;
+import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.market.surface.Surfaces;
 import com.opengamma.strata.pricer.model.SabrVolatilityFormula;
 import com.opengamma.strata.pricer.option.RawOptionData;
 
+/**
+ * Definition of caplet volatilities calibration.
+ * <p>
+ * This definition is used with {@link SabrIborCapletFloorletVolatilityBootstrapper}. 
+ * The SABR parameters are computed by bootstrap along the time direction, 
+ * thus the interpolation and left extrapolation for the time dimension must be local. 
+ * The resulting volatilities object will be {@link SabrParametersIborCapletFloorletVolatilities}.
+ */
 @BeanDefinition
 public final class SabrIborCapletFloorletBootstrapDefinition
     implements IborCapletFloorletDefinition, ImmutableBean, Serializable {
 
+  /**
+   * The name of the volatilities.
+   */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborCapletFloorletVolatilitiesName name;
-
+  /**
+   * The name of the volatilities.
+   */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborIndex index;
-
+  /**
+   * The day count to use.
+   */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final DayCount dayCount;
-
-  @PropertyDefinition(get = "optional")
-  private final Curve shiftCurve;
-
+  /**
+   * The beta (elasticity) curve.
+   * <p>
+   * This represents the beta parameter of SABR model.
+   * The x value of the curve is the expiry.
+   * <p>
+   * The beta will be treated as one of the calibration parameters if this field is not specified.
+   */
   @PropertyDefinition(get = "optional")
   private final Curve betaCurve;
-
+  /**
+   * The shift curve.
+   * <p>
+   * This represents the shift parameter of shifted SABR model.
+   * The x value of the curve is the expiry.
+   * <p>
+   * The shift is set to be zero if this field is not specified.
+   */
   @PropertyDefinition(validate = "notNull")
-  private final CurveInterpolator timeInterpolator;
-
+  private final Curve shiftCurve;
+  /**
+   * The interpolator for the SABR parameters.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final CurveInterpolator interpolator;
+  /**
+   * The left extrapolator for the SABR parameters.
+   * <p>
+   * The flat extrapolation is used if not specified.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final CurveExtrapolator extrapolatorLeft;
+  /**
+   * The right extrapolator for the SABR parameters.
+   * <p>
+   * The flat extrapolation is used if not specified.
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final CurveExtrapolator extrapolatorRight;
+  /**
+   * The SABR formula.
+   */
   @PropertyDefinition(validate = "notNull")
   private final SabrVolatilityFormula sabrVolatilityFormula;
 
-//  @PropertyDefinition(validate = "notNull", overrideGet = true)
-//  private final BusinessDayAdjustment businessDayAdjustment;
-
+  //-------------------------------------------------------------------------
+  /**
+   * Obtains an instance with zero shift.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param interpolator  the interpolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
   public static SabrIborCapletFloorletBootstrapDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
-      CurveInterpolator timeInterpolator,
+      CurveInterpolator interpolator,
       SabrVolatilityFormula sabrVolatilityFormula) {
 
-    return new SabrIborCapletFloorletBootstrapDefinition(name, index, dayCount, null, null,
-        timeInterpolator, sabrVolatilityFormula);
+    return of(name, index, dayCount, interpolator, FLAT, FLAT, sabrVolatilityFormula);
   }
 
+  /**
+   * Obtains an instance with zero shift.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletBootstrapDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    return new SabrIborCapletFloorletBootstrapDefinition(
+        name, index, dayCount, null, shiftCurve, interpolator, extrapolatorLeft, extrapolatorRight, sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with zero shift and constant beta.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param beta  the beta value
+   * @param interpolator  the interpolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
   public static SabrIborCapletFloorletBootstrapDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
       double beta,
-      CurveInterpolator timeInterpolator,
+      CurveInterpolator interpolator,
       SabrVolatilityFormula sabrVolatilityFormula) {
 
-    ConstantCurve betaCurve =
-        ConstantCurve.of(Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, ValueType.SABR_BETA), beta);
-    return new SabrIborCapletFloorletBootstrapDefinition(name, index, dayCount, null, betaCurve,
-        timeInterpolator, sabrVolatilityFormula);
+    return of(name, index, dayCount, beta, interpolator, FLAT, FLAT, sabrVolatilityFormula);
   }
 
+  /**
+   * Obtains an instance with zero shift and constant beta.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param beta  the beta value
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletBootstrapDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double beta,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    ConstantCurve betaCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+    return new SabrIborCapletFloorletBootstrapDefinition(
+        name, index, dayCount, betaCurve, shiftCurve, interpolator, extrapolatorLeft, extrapolatorRight, sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with constant beta and shift. 
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param beta  the beta value
+   * @param shift  the shift value
+   * @param interpolator  the interpolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
   public static SabrIborCapletFloorletBootstrapDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
       double beta,
       double shift,
-      CurveInterpolator timeInterpolator,
+      CurveInterpolator interpolator,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    return of(name, index, dayCount, beta, shift, interpolator, FLAT, FLAT, sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with constant beta and shift. 
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param beta  the beta value
+   * @param shift  the shift value
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletBootstrapDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double beta,
+      double shift,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
       SabrVolatilityFormula sabrVolatilityFormula) {
 
     ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
-    ConstantCurve betaCurve =
-        ConstantCurve.of(Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, ValueType.SABR_BETA), beta);
-    return new SabrIborCapletFloorletBootstrapDefinition(name, index, dayCount, shiftCurve, betaCurve,
-        timeInterpolator, sabrVolatilityFormula);
+    ConstantCurve betaCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+    return new SabrIborCapletFloorletBootstrapDefinition(
+        name, index, dayCount, betaCurve, shiftCurve, interpolator, extrapolatorLeft, extrapolatorRight, sabrVolatilityFormula);
   }
 
+  //-------------------------------------------------------------------------
+  @ImmutablePreBuild
+  private static void preBuild(Builder builder) {
+    if (builder.shiftCurve == null) {
+      builder.shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    }
+    if (builder.extrapolatorLeft == null) {
+      builder.extrapolatorLeft = FLAT;
+    }
+    if (builder.extrapolatorRight == null) {
+      builder.extrapolatorRight = FLAT;
+    }
+  }
+
+  @ImmutableValidator
+  private void validate() {
+    ArgChecker.isTrue(extrapolatorLeft.equals(FLAT), "extrapolator left must be flat extrapolator");
+    ArgChecker.isTrue(
+        interpolator.equals(CurveInterpolators.LINEAR) || interpolator.equals(CurveInterpolators.STEP_UPPER),
+        "interpolator must be local interpolator");
+  }
+
+  //-------------------------------------------------------------------------
+  @Override
   public SurfaceMetadata createMetadata(RawOptionData capFloorData) {
     SurfaceMetadata metadata;
-    if (capFloorData.getDataType().equals(ValueType.BLACK_VOLATILITY)) {
+    if (capFloorData.getDataType().equals(BLACK_VOLATILITY)) {
       metadata = Surfaces.blackVolatilityByExpiryStrike(name.getName(), dayCount);
-    } else if (capFloorData.getDataType().equals(ValueType.NORMAL_VOLATILITY)) {
+    } else if (capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
       metadata = Surfaces.normalVolatilityByExpiryStrike(name.getName(), dayCount);
     } else {
       throw new IllegalArgumentException("Data type not supported");
@@ -114,11 +312,16 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     return metadata;
   }
 
-  public List<CurveMetadata> createSabrParameterMetadata(RawOptionData capFloorData) {
-    CurveMetadata alphaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Alpha", dayCount, ValueType.SABR_ALPHA);
-    CurveMetadata betaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, ValueType.SABR_BETA);
-    CurveMetadata rhoMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Nu", dayCount, ValueType.SABR_RHO);
-    CurveMetadata nuMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, ValueType.SABR_NU); // TODO shift?
+  /**
+   * Creates curve metadata for SABR parameters.
+   * 
+   * @return the curve metadata
+   */
+  public ImmutableList<CurveMetadata> createSabrParameterMetadata() {
+    CurveMetadata alphaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Alpha", dayCount, SABR_ALPHA);
+    CurveMetadata betaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA);
+    CurveMetadata rhoMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Nu", dayCount, SABR_RHO);
+    CurveMetadata nuMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, SABR_NU);
     return ImmutableList.of(alphaMetadata, betaMetadata, rhoMetadata, nuMetadata);
   }
 
@@ -153,22 +356,30 @@ public final class SabrIborCapletFloorletBootstrapDefinition
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
-      Curve shiftCurve,
       Curve betaCurve,
-      CurveInterpolator timeInterpolator,
+      Curve shiftCurve,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
       SabrVolatilityFormula sabrVolatilityFormula) {
     JodaBeanUtils.notNull(name, "name");
     JodaBeanUtils.notNull(index, "index");
     JodaBeanUtils.notNull(dayCount, "dayCount");
-    JodaBeanUtils.notNull(timeInterpolator, "timeInterpolator");
+    JodaBeanUtils.notNull(shiftCurve, "shiftCurve");
+    JodaBeanUtils.notNull(interpolator, "interpolator");
+    JodaBeanUtils.notNull(extrapolatorLeft, "extrapolatorLeft");
+    JodaBeanUtils.notNull(extrapolatorRight, "extrapolatorRight");
     JodaBeanUtils.notNull(sabrVolatilityFormula, "sabrVolatilityFormula");
     this.name = name;
     this.index = index;
     this.dayCount = dayCount;
-    this.shiftCurve = shiftCurve;
     this.betaCurve = betaCurve;
-    this.timeInterpolator = timeInterpolator;
+    this.shiftCurve = shiftCurve;
+    this.interpolator = interpolator;
+    this.extrapolatorLeft = extrapolatorLeft;
+    this.extrapolatorRight = extrapolatorRight;
     this.sabrVolatilityFormula = sabrVolatilityFormula;
+    validate();
   }
 
   @Override
@@ -188,7 +399,7 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the name.
+   * Gets the name of the volatilities.
    * @return the value of the property, not null
    */
   @Override
@@ -198,7 +409,7 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the index.
+   * Gets the name of the volatilities.
    * @return the value of the property, not null
    */
   @Override
@@ -208,7 +419,7 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the dayCount.
+   * Gets the day count to use.
    * @return the value of the property, not null
    */
   @Override
@@ -218,16 +429,12 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the shiftCurve.
-   * @return the optional value of the property, not null
-   */
-  public Optional<Curve> getShiftCurve() {
-    return Optional.ofNullable(shiftCurve);
-  }
-
-  //-----------------------------------------------------------------------
-  /**
-   * Gets the betaCurve.
+   * Gets the beta (elasticity) curve.
+   * <p>
+   * This represents the beta parameter of SABR model.
+   * The x value of the curve is the expiry.
+   * <p>
+   * The beta will be treated as one of the calibration parameters if this field is not specified.
    * @return the optional value of the property, not null
    */
   public Optional<Curve> getBetaCurve() {
@@ -236,16 +443,52 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the timeInterpolator.
+   * Gets the shift curve.
+   * <p>
+   * This represents the shift parameter of shifted SABR model.
+   * The x value of the curve is the expiry.
+   * <p>
+   * The shift is set to be zero if this field is not specified.
    * @return the value of the property, not null
    */
-  public CurveInterpolator getTimeInterpolator() {
-    return timeInterpolator;
+  public Curve getShiftCurve() {
+    return shiftCurve;
   }
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the sabrVolatilityFormula.
+   * Gets the interpolator for the SABR parameters.
+   * @return the value of the property, not null
+   */
+  public CurveInterpolator getInterpolator() {
+    return interpolator;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the left extrapolator for the SABR parameters.
+   * <p>
+   * The flat extrapolation is used if not specified.
+   * @return the value of the property, not null
+   */
+  public CurveExtrapolator getExtrapolatorLeft() {
+    return extrapolatorLeft;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the right extrapolator for the SABR parameters.
+   * <p>
+   * The flat extrapolation is used if not specified.
+   * @return the value of the property, not null
+   */
+  public CurveExtrapolator getExtrapolatorRight() {
+    return extrapolatorRight;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the SABR formula.
    * @return the value of the property, not null
    */
   public SabrVolatilityFormula getSabrVolatilityFormula() {
@@ -271,9 +514,11 @@ public final class SabrIborCapletFloorletBootstrapDefinition
       return JodaBeanUtils.equal(name, other.name) &&
           JodaBeanUtils.equal(index, other.index) &&
           JodaBeanUtils.equal(dayCount, other.dayCount) &&
-          JodaBeanUtils.equal(shiftCurve, other.shiftCurve) &&
           JodaBeanUtils.equal(betaCurve, other.betaCurve) &&
-          JodaBeanUtils.equal(timeInterpolator, other.timeInterpolator) &&
+          JodaBeanUtils.equal(shiftCurve, other.shiftCurve) &&
+          JodaBeanUtils.equal(interpolator, other.interpolator) &&
+          JodaBeanUtils.equal(extrapolatorLeft, other.extrapolatorLeft) &&
+          JodaBeanUtils.equal(extrapolatorRight, other.extrapolatorRight) &&
           JodaBeanUtils.equal(sabrVolatilityFormula, other.sabrVolatilityFormula);
     }
     return false;
@@ -285,23 +530,27 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     hash = hash * 31 + JodaBeanUtils.hashCode(name);
     hash = hash * 31 + JodaBeanUtils.hashCode(index);
     hash = hash * 31 + JodaBeanUtils.hashCode(dayCount);
-    hash = hash * 31 + JodaBeanUtils.hashCode(shiftCurve);
     hash = hash * 31 + JodaBeanUtils.hashCode(betaCurve);
-    hash = hash * 31 + JodaBeanUtils.hashCode(timeInterpolator);
+    hash = hash * 31 + JodaBeanUtils.hashCode(shiftCurve);
+    hash = hash * 31 + JodaBeanUtils.hashCode(interpolator);
+    hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorLeft);
+    hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorRight);
     hash = hash * 31 + JodaBeanUtils.hashCode(sabrVolatilityFormula);
     return hash;
   }
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(256);
+    StringBuilder buf = new StringBuilder(320);
     buf.append("SabrIborCapletFloorletBootstrapDefinition{");
     buf.append("name").append('=').append(name).append(',').append(' ');
     buf.append("index").append('=').append(index).append(',').append(' ');
     buf.append("dayCount").append('=').append(dayCount).append(',').append(' ');
-    buf.append("shiftCurve").append('=').append(shiftCurve).append(',').append(' ');
     buf.append("betaCurve").append('=').append(betaCurve).append(',').append(' ');
-    buf.append("timeInterpolator").append('=').append(timeInterpolator).append(',').append(' ');
+    buf.append("shiftCurve").append('=').append(shiftCurve).append(',').append(' ');
+    buf.append("interpolator").append('=').append(interpolator).append(',').append(' ');
+    buf.append("extrapolatorLeft").append('=').append(extrapolatorLeft).append(',').append(' ');
+    buf.append("extrapolatorRight").append('=').append(extrapolatorRight).append(',').append(' ');
     buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
     buf.append('}');
     return buf.toString();
@@ -333,20 +582,30 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     private final MetaProperty<DayCount> dayCount = DirectMetaProperty.ofImmutable(
         this, "dayCount", SabrIborCapletFloorletBootstrapDefinition.class, DayCount.class);
     /**
-     * The meta-property for the {@code shiftCurve} property.
-     */
-    private final MetaProperty<Curve> shiftCurve = DirectMetaProperty.ofImmutable(
-        this, "shiftCurve", SabrIborCapletFloorletBootstrapDefinition.class, Curve.class);
-    /**
      * The meta-property for the {@code betaCurve} property.
      */
     private final MetaProperty<Curve> betaCurve = DirectMetaProperty.ofImmutable(
         this, "betaCurve", SabrIborCapletFloorletBootstrapDefinition.class, Curve.class);
     /**
-     * The meta-property for the {@code timeInterpolator} property.
+     * The meta-property for the {@code shiftCurve} property.
      */
-    private final MetaProperty<CurveInterpolator> timeInterpolator = DirectMetaProperty.ofImmutable(
-        this, "timeInterpolator", SabrIborCapletFloorletBootstrapDefinition.class, CurveInterpolator.class);
+    private final MetaProperty<Curve> shiftCurve = DirectMetaProperty.ofImmutable(
+        this, "shiftCurve", SabrIborCapletFloorletBootstrapDefinition.class, Curve.class);
+    /**
+     * The meta-property for the {@code interpolator} property.
+     */
+    private final MetaProperty<CurveInterpolator> interpolator = DirectMetaProperty.ofImmutable(
+        this, "interpolator", SabrIborCapletFloorletBootstrapDefinition.class, CurveInterpolator.class);
+    /**
+     * The meta-property for the {@code extrapolatorLeft} property.
+     */
+    private final MetaProperty<CurveExtrapolator> extrapolatorLeft = DirectMetaProperty.ofImmutable(
+        this, "extrapolatorLeft", SabrIborCapletFloorletBootstrapDefinition.class, CurveExtrapolator.class);
+    /**
+     * The meta-property for the {@code extrapolatorRight} property.
+     */
+    private final MetaProperty<CurveExtrapolator> extrapolatorRight = DirectMetaProperty.ofImmutable(
+        this, "extrapolatorRight", SabrIborCapletFloorletBootstrapDefinition.class, CurveExtrapolator.class);
     /**
      * The meta-property for the {@code sabrVolatilityFormula} property.
      */
@@ -360,9 +619,11 @@ public final class SabrIborCapletFloorletBootstrapDefinition
         "name",
         "index",
         "dayCount",
-        "shiftCurve",
         "betaCurve",
-        "timeInterpolator",
+        "shiftCurve",
+        "interpolator",
+        "extrapolatorLeft",
+        "extrapolatorRight",
         "sabrVolatilityFormula");
 
     /**
@@ -380,12 +641,16 @@ public final class SabrIborCapletFloorletBootstrapDefinition
           return index;
         case 1905311443:  // dayCount
           return dayCount;
-        case 1908090253:  // shiftCurve
-          return shiftCurve;
         case 1607020767:  // betaCurve
           return betaCurve;
-        case -587914188:  // timeInterpolator
-          return timeInterpolator;
+        case 1908090253:  // shiftCurve
+          return shiftCurve;
+        case 2096253127:  // interpolator
+          return interpolator;
+        case 1271703994:  // extrapolatorLeft
+          return extrapolatorLeft;
+        case 773779145:  // extrapolatorRight
+          return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
       }
@@ -433,14 +698,6 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * The meta-property for the {@code shiftCurve} property.
-     * @return the meta-property, not null
-     */
-    public MetaProperty<Curve> shiftCurve() {
-      return shiftCurve;
-    }
-
-    /**
      * The meta-property for the {@code betaCurve} property.
      * @return the meta-property, not null
      */
@@ -449,11 +706,35 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * The meta-property for the {@code timeInterpolator} property.
+     * The meta-property for the {@code shiftCurve} property.
      * @return the meta-property, not null
      */
-    public MetaProperty<CurveInterpolator> timeInterpolator() {
-      return timeInterpolator;
+    public MetaProperty<Curve> shiftCurve() {
+      return shiftCurve;
+    }
+
+    /**
+     * The meta-property for the {@code interpolator} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<CurveInterpolator> interpolator() {
+      return interpolator;
+    }
+
+    /**
+     * The meta-property for the {@code extrapolatorLeft} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<CurveExtrapolator> extrapolatorLeft() {
+      return extrapolatorLeft;
+    }
+
+    /**
+     * The meta-property for the {@code extrapolatorRight} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<CurveExtrapolator> extrapolatorRight() {
+      return extrapolatorRight;
     }
 
     /**
@@ -474,12 +755,16 @@ public final class SabrIborCapletFloorletBootstrapDefinition
           return ((SabrIborCapletFloorletBootstrapDefinition) bean).getIndex();
         case 1905311443:  // dayCount
           return ((SabrIborCapletFloorletBootstrapDefinition) bean).getDayCount();
-        case 1908090253:  // shiftCurve
-          return ((SabrIborCapletFloorletBootstrapDefinition) bean).shiftCurve;
         case 1607020767:  // betaCurve
           return ((SabrIborCapletFloorletBootstrapDefinition) bean).betaCurve;
-        case -587914188:  // timeInterpolator
-          return ((SabrIborCapletFloorletBootstrapDefinition) bean).getTimeInterpolator();
+        case 1908090253:  // shiftCurve
+          return ((SabrIborCapletFloorletBootstrapDefinition) bean).getShiftCurve();
+        case 2096253127:  // interpolator
+          return ((SabrIborCapletFloorletBootstrapDefinition) bean).getInterpolator();
+        case 1271703994:  // extrapolatorLeft
+          return ((SabrIborCapletFloorletBootstrapDefinition) bean).getExtrapolatorLeft();
+        case 773779145:  // extrapolatorRight
+          return ((SabrIborCapletFloorletBootstrapDefinition) bean).getExtrapolatorRight();
         case -683564541:  // sabrVolatilityFormula
           return ((SabrIborCapletFloorletBootstrapDefinition) bean).getSabrVolatilityFormula();
       }
@@ -506,9 +791,11 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     private IborCapletFloorletVolatilitiesName name;
     private IborIndex index;
     private DayCount dayCount;
-    private Curve shiftCurve;
     private Curve betaCurve;
-    private CurveInterpolator timeInterpolator;
+    private Curve shiftCurve;
+    private CurveInterpolator interpolator;
+    private CurveExtrapolator extrapolatorLeft;
+    private CurveExtrapolator extrapolatorRight;
     private SabrVolatilityFormula sabrVolatilityFormula;
 
     /**
@@ -525,9 +812,11 @@ public final class SabrIborCapletFloorletBootstrapDefinition
       this.name = beanToCopy.getName();
       this.index = beanToCopy.getIndex();
       this.dayCount = beanToCopy.getDayCount();
-      this.shiftCurve = beanToCopy.shiftCurve;
       this.betaCurve = beanToCopy.betaCurve;
-      this.timeInterpolator = beanToCopy.getTimeInterpolator();
+      this.shiftCurve = beanToCopy.getShiftCurve();
+      this.interpolator = beanToCopy.getInterpolator();
+      this.extrapolatorLeft = beanToCopy.getExtrapolatorLeft();
+      this.extrapolatorRight = beanToCopy.getExtrapolatorRight();
       this.sabrVolatilityFormula = beanToCopy.getSabrVolatilityFormula();
     }
 
@@ -541,12 +830,16 @@ public final class SabrIborCapletFloorletBootstrapDefinition
           return index;
         case 1905311443:  // dayCount
           return dayCount;
-        case 1908090253:  // shiftCurve
-          return shiftCurve;
         case 1607020767:  // betaCurve
           return betaCurve;
-        case -587914188:  // timeInterpolator
-          return timeInterpolator;
+        case 1908090253:  // shiftCurve
+          return shiftCurve;
+        case 2096253127:  // interpolator
+          return interpolator;
+        case 1271703994:  // extrapolatorLeft
+          return extrapolatorLeft;
+        case 773779145:  // extrapolatorRight
+          return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
         default:
@@ -566,14 +859,20 @@ public final class SabrIborCapletFloorletBootstrapDefinition
         case 1905311443:  // dayCount
           this.dayCount = (DayCount) newValue;
           break;
-        case 1908090253:  // shiftCurve
-          this.shiftCurve = (Curve) newValue;
-          break;
         case 1607020767:  // betaCurve
           this.betaCurve = (Curve) newValue;
           break;
-        case -587914188:  // timeInterpolator
-          this.timeInterpolator = (CurveInterpolator) newValue;
+        case 1908090253:  // shiftCurve
+          this.shiftCurve = (Curve) newValue;
+          break;
+        case 2096253127:  // interpolator
+          this.interpolator = (CurveInterpolator) newValue;
+          break;
+        case 1271703994:  // extrapolatorLeft
+          this.extrapolatorLeft = (CurveExtrapolator) newValue;
+          break;
+        case 773779145:  // extrapolatorRight
+          this.extrapolatorRight = (CurveExtrapolator) newValue;
           break;
         case -683564541:  // sabrVolatilityFormula
           this.sabrVolatilityFormula = (SabrVolatilityFormula) newValue;
@@ -610,19 +909,22 @@ public final class SabrIborCapletFloorletBootstrapDefinition
 
     @Override
     public SabrIborCapletFloorletBootstrapDefinition build() {
+      preBuild(this);
       return new SabrIborCapletFloorletBootstrapDefinition(
           name,
           index,
           dayCount,
-          shiftCurve,
           betaCurve,
-          timeInterpolator,
+          shiftCurve,
+          interpolator,
+          extrapolatorLeft,
+          extrapolatorRight,
           sabrVolatilityFormula);
     }
 
     //-----------------------------------------------------------------------
     /**
-     * Sets the name.
+     * Sets the name of the volatilities.
      * @param name  the new value, not null
      * @return this, for chaining, not null
      */
@@ -633,7 +935,7 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * Sets the index.
+     * Sets the name of the volatilities.
      * @param index  the new value, not null
      * @return this, for chaining, not null
      */
@@ -644,7 +946,7 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * Sets the dayCount.
+     * Sets the day count to use.
      * @param dayCount  the new value, not null
      * @return this, for chaining, not null
      */
@@ -655,17 +957,12 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * Sets the shiftCurve.
-     * @param shiftCurve  the new value
-     * @return this, for chaining, not null
-     */
-    public Builder shiftCurve(Curve shiftCurve) {
-      this.shiftCurve = shiftCurve;
-      return this;
-    }
-
-    /**
-     * Sets the betaCurve.
+     * Sets the beta (elasticity) curve.
+     * <p>
+     * This represents the beta parameter of SABR model.
+     * The x value of the curve is the expiry.
+     * <p>
+     * The beta will be treated as one of the calibration parameters if this field is not specified.
      * @param betaCurve  the new value
      * @return this, for chaining, not null
      */
@@ -675,18 +972,60 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     }
 
     /**
-     * Sets the timeInterpolator.
-     * @param timeInterpolator  the new value, not null
+     * Sets the shift curve.
+     * <p>
+     * This represents the shift parameter of shifted SABR model.
+     * The x value of the curve is the expiry.
+     * <p>
+     * The shift is set to be zero if this field is not specified.
+     * @param shiftCurve  the new value, not null
      * @return this, for chaining, not null
      */
-    public Builder timeInterpolator(CurveInterpolator timeInterpolator) {
-      JodaBeanUtils.notNull(timeInterpolator, "timeInterpolator");
-      this.timeInterpolator = timeInterpolator;
+    public Builder shiftCurve(Curve shiftCurve) {
+      JodaBeanUtils.notNull(shiftCurve, "shiftCurve");
+      this.shiftCurve = shiftCurve;
       return this;
     }
 
     /**
-     * Sets the sabrVolatilityFormula.
+     * Sets the interpolator for the SABR parameters.
+     * @param interpolator  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder interpolator(CurveInterpolator interpolator) {
+      JodaBeanUtils.notNull(interpolator, "interpolator");
+      this.interpolator = interpolator;
+      return this;
+    }
+
+    /**
+     * Sets the left extrapolator for the SABR parameters.
+     * <p>
+     * The flat extrapolation is used if not specified.
+     * @param extrapolatorLeft  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder extrapolatorLeft(CurveExtrapolator extrapolatorLeft) {
+      JodaBeanUtils.notNull(extrapolatorLeft, "extrapolatorLeft");
+      this.extrapolatorLeft = extrapolatorLeft;
+      return this;
+    }
+
+    /**
+     * Sets the right extrapolator for the SABR parameters.
+     * <p>
+     * The flat extrapolation is used if not specified.
+     * @param extrapolatorRight  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder extrapolatorRight(CurveExtrapolator extrapolatorRight) {
+      JodaBeanUtils.notNull(extrapolatorRight, "extrapolatorRight");
+      this.extrapolatorRight = extrapolatorRight;
+      return this;
+    }
+
+    /**
+     * Sets the SABR formula.
      * @param sabrVolatilityFormula  the new value, not null
      * @return this, for chaining, not null
      */
@@ -699,14 +1038,16 @@ public final class SabrIborCapletFloorletBootstrapDefinition
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(256);
+      StringBuilder buf = new StringBuilder(320);
       buf.append("SabrIborCapletFloorletBootstrapDefinition.Builder{");
       buf.append("name").append('=').append(JodaBeanUtils.toString(name)).append(',').append(' ');
       buf.append("index").append('=').append(JodaBeanUtils.toString(index)).append(',').append(' ');
       buf.append("dayCount").append('=').append(JodaBeanUtils.toString(dayCount)).append(',').append(' ');
-      buf.append("shiftCurve").append('=').append(JodaBeanUtils.toString(shiftCurve)).append(',').append(' ');
       buf.append("betaCurve").append('=').append(JodaBeanUtils.toString(betaCurve)).append(',').append(' ');
-      buf.append("timeInterpolator").append('=').append(JodaBeanUtils.toString(timeInterpolator)).append(',').append(' ');
+      buf.append("shiftCurve").append('=').append(JodaBeanUtils.toString(shiftCurve)).append(',').append(' ');
+      buf.append("interpolator").append('=').append(JodaBeanUtils.toString(interpolator)).append(',').append(' ');
+      buf.append("extrapolatorLeft").append('=').append(JodaBeanUtils.toString(extrapolatorLeft)).append(',').append(' ');
+      buf.append("extrapolatorRight").append('=').append(JodaBeanUtils.toString(extrapolatorRight)).append(',').append(' ');
       buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
       buf.append('}');
       return buf.toString();

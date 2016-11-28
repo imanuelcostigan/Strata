@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ *
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
 
 import java.time.LocalDate;
@@ -11,10 +16,15 @@ import com.opengamma.strata.basics.schedule.PeriodicSchedule;
 import com.opengamma.strata.basics.schedule.RollConventions;
 import com.opengamma.strata.basics.schedule.StubConvention;
 import com.opengamma.strata.basics.value.ValueSchedule;
+import com.opengamma.strata.market.surface.SurfaceMetadata;
+import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.product.capfloor.IborCapFloorLeg;
 import com.opengamma.strata.product.common.PayReceive;
 import com.opengamma.strata.product.swap.IborRateCalculation;
 
+/**
+ * Definition of caplet volatilities calibration.
+ */
 public interface IborCapletFloorletDefinition {
 
   /**
@@ -38,6 +48,22 @@ public interface IborCapletFloorletDefinition {
    */
   public abstract DayCount getDayCount();
 
+  /**
+   * Creates surface metadata.
+   * 
+   * @param capFloorData  the cap/floor data
+   * @return the surface metadata
+   */
+  public abstract SurfaceMetadata createMetadata(RawOptionData capFloorData);
+
+  /**
+   * Creates a standard cap from start date, end date and strike. 
+   * 
+   * @param startDate  the start date
+   * @param endDate  the end date
+   * @param strike  the strike
+   * @return the cap
+   */
   public default IborCapFloorLeg createCap(LocalDate startDate, LocalDate endDate, double strike) {
     IborIndex index = getIndex();
     return IborCapFloorLeg.builder()

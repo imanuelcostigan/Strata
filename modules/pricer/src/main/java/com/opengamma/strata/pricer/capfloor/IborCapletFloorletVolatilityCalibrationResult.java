@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ *
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
 
 import java.io.Serializable;
@@ -18,18 +23,38 @@ import org.joda.beans.impl.direct.DirectMetaBean;
 import org.joda.beans.impl.direct.DirectMetaProperty;
 import org.joda.beans.impl.direct.DirectMetaPropertyMap;
 
+/**
+ * Calibration result for Ibor caplet/floorlet volatilities.
+ * <p>
+ * This stores caplet volatilities {@link IborCapletFloorletVolatilities} and chi square value {@code chiSquare}. 
+ */
 @BeanDefinition(builderScope = "private")
 public final class IborCapletFloorletVolatilityCalibrationResult
     implements ImmutableBean, Serializable {
 
+  /**
+   * The caplet volatilities.
+   */
   @PropertyDefinition(validate = "notNull")
   private final IborCapletFloorletVolatilities volatilities;
 
+  /**
+   * The chi-square value.
+   * <p>
+   * The chi square is 0 if the volatilities are computed by root-finding. 
+   * The chi square is generally non-zeoro if the volatilities are computed by least square method.
+   */
   @PropertyDefinition(validate = "notNull")
   private final double chiSquare;
 
   //-------------------------------------------------------------------------
-
+  /**
+   * Obtains an instance of least square result. 
+   * 
+   * @param volatilities  the caplet volatilities
+   * @param chiSquare  the chi-square value
+   * @return the instance
+   */
   public static IborCapletFloorletVolatilityCalibrationResult ofLestSquare(
       IborCapletFloorletVolatilities volatilities,
       double chiSquare) {
@@ -37,6 +62,12 @@ public final class IborCapletFloorletVolatilityCalibrationResult
     return new IborCapletFloorletVolatilityCalibrationResult(volatilities, chiSquare);
   }
 
+  /**
+   * Obtains an instance of root-finding result. 
+   * 
+   * @param volatilities  the caplet volatilities
+   * @return the instance
+   */
   public static IborCapletFloorletVolatilityCalibrationResult ofRootFind(IborCapletFloorletVolatilities volatilities) {
 
     return new IborCapletFloorletVolatilityCalibrationResult(volatilities, 0d);
@@ -87,7 +118,7 @@ public final class IborCapletFloorletVolatilityCalibrationResult
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the volatilities.
+   * Gets the caplet volatilities.
    * @return the value of the property, not null
    */
   public IborCapletFloorletVolatilities getVolatilities() {
@@ -96,7 +127,10 @@ public final class IborCapletFloorletVolatilityCalibrationResult
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the chiSquare.
+   * Gets the chi-square value.
+   * <p>
+   * The chi square is 0 if the volatilities are computed by root-finding.
+   * The chi square is generally non-zeoro if the volatilities are computed by least square method.
    * @return the value of the property, not null
    */
   public double getChiSquare() {

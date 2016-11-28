@@ -1,4 +1,12 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ *
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
+
+import static com.opengamma.strata.market.curve.interpolator.CurveExtrapolators.FLAT;
+import static com.opengamma.strata.market.curve.interpolator.CurveExtrapolators.LINEAR;
 
 import java.io.Serializable;
 import java.time.Period;
@@ -28,7 +36,6 @@ import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.market.ValueType;
-import com.opengamma.strata.market.curve.interpolator.CurveExtrapolators;
 import com.opengamma.strata.market.curve.interpolator.CurveInterpolator;
 import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
 import com.opengamma.strata.market.option.SimpleStrike;
@@ -38,6 +45,14 @@ import com.opengamma.strata.market.surface.interpolator.GridSurfaceInterpolator;
 import com.opengamma.strata.pricer.common.GenericVolatilitySurfacePeriodParameterMetadata;
 import com.opengamma.strata.pricer.option.RawOptionData;
 
+/**
+ * Definition of caplet volatilities calibration.
+ * <p>
+ * This definition is used with {@link SurfaceIborCapletFloorletVolatilityBootstrapper}. 
+ * The caplet volatilities are computed by bootstrap along the time direction, 
+ * thus the interpolation and left extrapolation for the time dimension must be local. 
+ * The resulting volatilities object will be a set of caplet volatilities interpolated by {@link GridSurfaceInterpolator}.
+ */
 @BeanDefinition(builderScope = "private")
 public final class SurfaceIborCapletFloorletBootstrapDefinition
     implements IborCapletFloorletDefinition, ImmutableBean, Serializable {
@@ -47,7 +62,9 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborCapletFloorletVolatilitiesName name;
-
+  /**
+   * The Ibor index.
+   */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborIndex index;
   /**
@@ -62,6 +79,15 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
   private final GridSurfaceInterpolator interpolator;
 
   //-------------------------------------------------------------------------
+  /**
+   * Obtains an instance.
+   * 
+   * @param name  the name of the volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count to use
+   * @param interpolator  the surface interpolator
+   * @return the instance
+   */
   public static SurfaceIborCapletFloorletBootstrapDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
@@ -71,6 +97,20 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
     return new SurfaceIborCapletFloorletBootstrapDefinition(name, index, dayCount, interpolator);
   }
 
+  /**
+   * Obtains an instance with assumption on the extrapolation. 
+   * <p>
+   * The left extrapolation in the time dimension is flat.
+   * The right extrapolation  in the time dimension is linear. 
+   * The extrapolators in the strike dimension is linear. 
+   * 
+   * @param name  the name of the volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count to use
+   * @param timeInterpolator  the time interpolator
+   * @param strikeInterpolator  the strike interpolator
+   * @return the instance
+   */
   public static SurfaceIborCapletFloorletBootstrapDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
@@ -79,19 +119,13 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
       CurveInterpolator strikeInterpolator) {
 
     GridSurfaceInterpolator gridInterpolator = GridSurfaceInterpolator.of(
-        timeInterpolator,
-        CurveExtrapolators.FLAT,
-        CurveExtrapolators.LINEAR,
-        strikeInterpolator,
-        CurveExtrapolators.LINEAR,
-        CurveExtrapolators.LINEAR);
+        timeInterpolator, FLAT, LINEAR, strikeInterpolator, LINEAR, LINEAR);
     return new SurfaceIborCapletFloorletBootstrapDefinition(name, index, dayCount, gridInterpolator);
   }
 
   @ImmutableValidator
   private void validate() {
-    ArgChecker.isTrue(interpolator.getXExtrapolatorLeft().equals(CurveExtrapolators.FLAT),
-        "x extrapolator left must be flat extrapolator");
+    ArgChecker.isTrue(interpolator.getXExtrapolatorLeft().equals(FLAT), "x extrapolator left must be flat extrapolator");
     ArgChecker.isTrue(interpolator.getXInterpolator().equals(CurveInterpolators.LINEAR) ||
         interpolator.getXInterpolator().equals(CurveInterpolators.STEP_UPPER) ||
         interpolator.getXInterpolator().equals(CurveInterpolators.TIME_SQUARE),
@@ -99,6 +133,7 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
   }
 
   //-------------------------------------------------------------------------
+  @Override
   public SurfaceMetadata createMetadata(RawOptionData capFloorData) {
     List<GenericVolatilitySurfacePeriodParameterMetadata> list = new ArrayList<>();
     ImmutableList<Period> expiries = capFloorData.getExpiries();
@@ -185,7 +220,7 @@ public final class SurfaceIborCapletFloorletBootstrapDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the index.
+   * Gets the Ibor index.
    * @return the value of the property, not null
    */
   @Override

@@ -5,6 +5,9 @@
  */
 package com.opengamma.strata.pricer.capfloor;
 
+import static com.opengamma.strata.math.impl.linearalgebra.DecompositionFactory.SV_COMMONS;
+import static com.opengamma.strata.math.impl.matrix.MatrixAlgebraFactory.OG_ALGEBRA;
+
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZonedDateTime;
@@ -28,8 +31,6 @@ import com.opengamma.strata.market.param.CurrencyParameterSensitivities;
 import com.opengamma.strata.market.sensitivity.PointSensitivities;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
-import com.opengamma.strata.math.impl.linearalgebra.DecompositionFactory;
-import com.opengamma.strata.math.impl.matrix.MatrixAlgebraFactory;
 import com.opengamma.strata.math.impl.minimization.DoubleRangeLimitTransform;
 import com.opengamma.strata.math.impl.minimization.NonLinearTransformFunction;
 import com.opengamma.strata.math.impl.minimization.ParameterLimitsTransform;
@@ -105,8 +106,7 @@ public class SabrIborCapletFloorletVolatilityBootstrapper extends IborCapletFloo
       double epsilon,
       ReferenceData referenceData) {
 
-    NonLinearLeastSquare solver = new NonLinearLeastSquare(
-        DecompositionFactory.SV_COMMONS, MatrixAlgebraFactory.OG_ALGEBRA, epsilon);
+    NonLinearLeastSquare solver = new NonLinearLeastSquare(SV_COMMONS, OG_ALGEBRA, epsilon);
     return new SabrIborCapletFloorletVolatilityBootstrapper(pricer, sabrLegPricer, solver, referenceData);
   }
 
@@ -157,7 +157,7 @@ public class SabrIborCapletFloorletVolatilityBootstrapper extends IborCapletFloo
       startIndex[i + 1] = volList.size();
     }
 
-    List<CurveMetadata> metadataList = bsDefinition.createSabrParameterMetadata(capFloorData);
+    List<CurveMetadata> metadataList = bsDefinition.createSabrParameterMetadata();
     DoubleArray timeToExpiries = DoubleArray.of(nExpiries, i -> timeList.get(startIndex[i]));
     BitSet fixed = new BitSet();
     Curve betaCurve;
@@ -166,17 +166,36 @@ public class SabrIborCapletFloorletVolatilityBootstrapper extends IborCapletFloo
       betaCurve = bsDefinition.getBetaCurve().get();
     } else {
       betaCurve = InterpolatedNodalCurve.of(
-          metadataList.get(1), timeToExpiries, DoubleArray.filled(nExpiries), bsDefinition.getTimeInterpolator());
+          metadataList.get(1),
+          timeToExpiries,
+          DoubleArray.filled(nExpiries),
+          bsDefinition.getInterpolator(),
+          bsDefinition.getExtrapolatorLeft(),
+          bsDefinition.getExtrapolatorRight());
     }
     InterpolatedNodalCurve alphaCurve = InterpolatedNodalCurve.of(
-        metadataList.get(0), timeToExpiries, DoubleArray.filled(nExpiries), bsDefinition.getTimeInterpolator());
+        metadataList.get(0),
+        timeToExpiries,
+        DoubleArray.filled(nExpiries),
+        bsDefinition.getInterpolator(),
+        bsDefinition.getExtrapolatorLeft(),
+        bsDefinition.getExtrapolatorRight());
     InterpolatedNodalCurve rhoCurve = InterpolatedNodalCurve.of(
-        metadataList.get(2), timeToExpiries, DoubleArray.filled(nExpiries), bsDefinition.getTimeInterpolator());
+        metadataList.get(2),
+        timeToExpiries,
+        DoubleArray.filled(nExpiries),
+        bsDefinition.getInterpolator(),
+        bsDefinition.getExtrapolatorLeft(),
+        bsDefinition.getExtrapolatorRight());
     InterpolatedNodalCurve nuCurve = InterpolatedNodalCurve.of(
-        metadataList.get(3), timeToExpiries, DoubleArray.filled(nExpiries), bsDefinition.getTimeInterpolator());
-    SabrParameters sabrParams = bsDefinition.getShiftCurve().isPresent() ? SabrParameters.of(
-        alphaCurve, betaCurve, rhoCurve, nuCurve, bsDefinition.getShiftCurve().get(), bsDefinition.getSabrVolatilityFormula())
-        : SabrParameters.of(alphaCurve, betaCurve, rhoCurve, nuCurve, bsDefinition.getSabrVolatilityFormula());
+        metadataList.get(3),
+        timeToExpiries,
+        DoubleArray.filled(nExpiries),
+        bsDefinition.getInterpolator(),
+        bsDefinition.getExtrapolatorLeft(),
+        bsDefinition.getExtrapolatorRight());
+    SabrParameters sabrParams = SabrParameters.of(
+        alphaCurve, betaCurve, rhoCurve, nuCurve, bsDefinition.getShiftCurve(), bsDefinition.getSabrVolatilityFormula());
     SabrParametersIborCapletFloorletVolatilities vols =
         SabrParametersIborCapletFloorletVolatilities.of(bsDefinition.getName(), index, calibrationDateTime, sabrParams);
     double totalChiSq = 0d;
