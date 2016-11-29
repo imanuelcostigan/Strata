@@ -94,11 +94,7 @@ public class SabrIborCapletFloorletVolatilityBootstrapper extends IborCapletFloo
    * The epsilon is the parameter used in {@linked NonLinearLeastSquare}, where the iteration stops when certain 
    * quantities are smaller than this parameter.
    * 
-<<<<<<< HEAD
-   * @param pricer  the cap/floor pricer to convert qoted volatilities to prices
-=======
    * @param pricer  the cap/floor pricer to convert quoted volatilities to prices
->>>>>>> topic/caplet-stripping-bootstrap
    * @param sabrLegPricer  the SABR pricer
    * @param epsilon  the epsilon parameter
    * @param referenceData  the reference data
