@@ -62,9 +62,6 @@ public class VolatilityIborCapletFloorletPeriodPricer {
       double payoff = Math.max(sign * (indexRate - strike), 0d);
       return CurrencyAmount.of(currency, df * payoff * period.getYearFraction() * period.getNotional());
     }
-    if (!(volatilities.volatility(expiry, strike, indexRate) >= 0d)) {
-      int a = 1;
-    }
     double volatility = volatilities.volatility(expiry, strike, indexRate);
     double price = df * period.getYearFraction() * volatilities.price(expiry, putCall, strike, indexRate, volatility);
     return CurrencyAmount.of(currency, price * period.getNotional());
