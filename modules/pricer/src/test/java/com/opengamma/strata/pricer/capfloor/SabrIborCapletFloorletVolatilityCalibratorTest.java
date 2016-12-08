@@ -11,7 +11,6 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
 import com.opengamma.strata.collect.array.DoubleArray;
-import com.opengamma.strata.collect.array.DoubleMatrix;
 import com.opengamma.strata.collect.tuple.Pair;
 import com.opengamma.strata.market.ValueType;
 import com.opengamma.strata.market.curve.interpolator.CurveExtrapolators;
@@ -39,7 +38,6 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     DoubleArray betaKnots = DoubleArray.of(1);
     DoubleArray rhoKnots = DoubleArray.of(1, 3, 7);
     DoubleArray nuKnots = DoubleArray.of(1, 2, 3, 5, 7, 10);
-    double error = 0.001;
 
     SabrIborCapletFloorletCalibrationDefinition definition = SabrIborCapletFloorletCalibrationDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
@@ -49,8 +47,7 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
-        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(),
-        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.BLACK_VOLATILITY);
+        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(), ValueType.BLACK_VOLATILITY);
     IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
     SabrIborCapletFloorletVolatilities resVols =
         (SabrIborCapletFloorletVolatilities) res.getVolatilities();
@@ -66,8 +63,8 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
             USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
         double priceOrg = LEG_PRICER_BLACK.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
         double priceCalib = LEG_PRICER_SABR.presentValue(caps.get(j), RATES_PROVIDER, resVols).getAmount();
-        System.out.println(priceOrg + "\t" + priceCalib);
-        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 5d);
+//        System.out.println(priceOrg + "\t" + priceCalib);
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 3d);
       }
     }
 

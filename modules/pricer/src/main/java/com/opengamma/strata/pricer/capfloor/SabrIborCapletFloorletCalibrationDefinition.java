@@ -218,7 +218,7 @@ public final class SabrIborCapletFloorletCalibrationDefinition
   public DoubleArray createFullInitialValues() {
 
     List<Double> fullInitialValues = new ArrayList<>();
-    double[] initialValues = new double[] {0.2, 0.7, -0.5, 0.5}; // TODO flexibility??
+    double[] initialValues = new double[] {0.2, 0.7, -0.2, 0.5}; // TODO flexibility??
     for (int i = 0; i < 4; ++i) {
       int nNodes = parameterCurveNodes.get(i).size();
       fullInitialValues.addAll(Collections.nCopies(nNodes, initialValues[i]));
