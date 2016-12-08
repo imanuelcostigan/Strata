@@ -17,9 +17,12 @@ import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.array.DoubleMatrix;
+import com.opengamma.strata.collect.tuple.Triple;
+import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
 import com.opengamma.strata.market.surface.InterpolatedNodalSurface;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
+import com.opengamma.strata.market.surface.interpolator.GridSurfaceInterpolator;
 import com.opengamma.strata.math.impl.linearalgebra.CholeskyDecompositionCommons;
 import com.opengamma.strata.math.impl.minimization.PositiveOrZero;
 import com.opengamma.strata.math.impl.statistics.leastsquare.LeastSquareResults;
@@ -44,7 +47,14 @@ public class DirectIborCapletFloorletVolatilityCalibrator
    */
   private static final Function<DoubleArray, Boolean> POSITIVE = new PositiveOrZero();
   /**
-   * The non-linear square with penalty. 
+   * The conventional surface interpolator for the calibration.
+   * <p>
+   * Since node points are always hit in the calibration, this interpolator is not used generally.
+   */
+  private static final GridSurfaceInterpolator INTERPOLATOR =
+      GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR);
+  /**
+   * The non-linear least square with penalty. 
    */
   private final NonLinearLeastSquareWithPenalty solver;
 
@@ -86,6 +96,8 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       RawOptionData capFloorData,
       RatesProvider ratesProvider) {
 
+    // TODO check at leaset one of vols for the longest period is non-null.
+
     ArgChecker.isTrue(ratesProvider.getValuationDate().equals(calibrationDateTime.toLocalDate()),
         "valuationDate of ratesProvider should be coherent to calibrationDateTime");
     ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletDefinition);
@@ -96,66 +108,67 @@ public class DirectIborCapletFloorletVolatilityCalibrator
     LocalDate startDate = baseDate.plus(index.getTenor());
     Function<Surface, IborCapletFloorletVolatilities> volatilitiesFunction = volatilitiesFunction(
         directDefinition, calibrationDateTime, capFloorData);
-    SurfaceMetadata metaData = directDefinition.createMetadata(capFloorData);
+    SurfaceMetadata metadata = directDefinition.createMetadata(capFloorData);
     List<Period> expiries = capFloorData.getExpiries();
+    DoubleArray strikes = capFloorData.getStrikes();
     int nExpiries = expiries.size();
     List<Double> timeList = new ArrayList<>();
     List<Double> strikeList = new ArrayList<>();
     List<Double> volList = new ArrayList<>();
     List<ResolvedIborCapFloorLeg> capList = new ArrayList<>();
     List<Double> priceList = new ArrayList<>();
-    int[] startIndex = new int[nExpiries + 1];
+    List<Double> errorList = new ArrayList<>();
+    DoubleMatrix errorMatrix = capFloorData.getError().orElse(DoubleMatrix.filled(nExpiries, strikes.size(), 1d));
     for (int i = 0; i < nExpiries; ++i) {
       LocalDate endDate = baseDate.plus(expiries.get(i));
-      DoubleArray volatilityData = capFloorData.getData().row(i);
-      reduceRawData(directDefinition, ratesProvider, capFloorData.getStrikes(), volatilityData, startDate, endDate, metaData,
-          volatilitiesFunction, timeList, strikeList, volList, capList, priceList);
-      startIndex[i + 1] = priceList.size();
+      DoubleArray volatilityForTime = capFloorData.getData().row(i);
+      DoubleArray errorForTime = errorMatrix.row(i);
+      reduceRawData(directDefinition, ratesProvider, capFloorData.getStrikes(), volatilityForTime, errorForTime, startDate,
+          endDate, metadata, volatilitiesFunction, timeList, strikeList, volList, capList, priceList, errorList);
     }
+    InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
+        metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), DoubleArray.copyOf(volList), INTERPOLATOR);
 
-    List<Double> timeCapletList = new ArrayList<>();
-    List<Double> strikeCapletList = new ArrayList<>();
-    List<Double> volCapletList = new ArrayList<>();
     ResolvedIborCapFloorLeg cap = capList.get(capList.size() - 1);
     int nCaplets = cap.getCapletFloorletPeriods().size();
     DoubleArray capletExpiries = DoubleArray.of(nCaplets, n -> directDefinition.getDayCount().relativeYearFraction(
         calibrationDate, cap.getCapletFloorletPeriods().get(n).getFixingDateTime().toLocalDate()));
-    DoubleArray strikes = capFloorData.getStrikes();
-    createCapletNode(capletExpiries, strikes, timeCapletList, strikeCapletList, volCapletList);
-    SurfaceMetadata metadata = directDefinition.createMetadata(capFloorData);
-    InterpolatedNodalSurface baseSurface = InterpolatedNodalSurface.of(metadata, DoubleArray.copyOf(timeCapletList),
-        DoubleArray.copyOf(strikeCapletList), DoubleArray.copyOf(volCapletList), directDefinition.getInterpolator());
-
+    Triple<DoubleArray, DoubleArray, DoubleArray> capletNodes = createCapletNode(capVolSurface, capletExpiries, strikes);
+    InterpolatedNodalSurface baseSurface = InterpolatedNodalSurface.of(
+        metadata, capletNodes.getFirst(), capletNodes.getSecond(), capletNodes.getThird(), INTERPOLATOR);
     DoubleMatrix penaltyMatrix = directDefinition.computePenaltyMatrix(strikes, capletExpiries);
-    DoubleArray errors = DoubleArray.filled(priceList.size(), directDefinition.getError()); // TODO
 
     LeastSquareResults res = solver.solve(
         DoubleArray.copyOf(priceList),
-        errors,
+        DoubleArray.copyOf(errorList),
         getPriceFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
         getJacobianFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
-        DoubleArray.copyOf(volCapletList),
+        capletNodes.getThird(),
         penaltyMatrix,
         POSITIVE);
-    InterpolatedNodalSurface resSurface = baseSurface.withZValues(res.getFitParameters());
+    InterpolatedNodalSurface resSurface = InterpolatedNodalSurface.of(
+        metadata, capletNodes.getFirst(), capletNodes.getSecond(), res.getFitParameters(), directDefinition.getInterpolator());
     return IborCapletFloorletVolatilityCalibrationResult.ofLestSquare(volatilitiesFunction.apply(resSurface), res.getChiSq());
   }
 
   //-------------------------------------------------------------------------
-  private void createCapletNode(
+  private Triple<DoubleArray, DoubleArray, DoubleArray> createCapletNode(
+      InterpolatedNodalSurface capVolSurface,
       DoubleArray capletExpiries,
-      DoubleArray strikes,
-      List<Double> timeCapletList,
-      List<Double> strikeCapletList,
-      List<Double> volCapletList) {
+      DoubleArray strikes) {
 
+    List<Double> timeCapletList = new ArrayList<>();
+    List<Double> strikeCapletList = new ArrayList<>();
+    List<Double> volCapletList = new ArrayList<>();
     int nTimes = capletExpiries.size();
     int nStrikes = strikes.size();
     for (int i = 0; i < nTimes; ++i) {
-      timeCapletList.addAll(DoubleArray.filled(nStrikes, capletExpiries.get(i)).toList()); // TODO simplify
+      double expiry = capletExpiries.get(i);
+      timeCapletList.addAll(DoubleArray.filled(nStrikes, expiry).toList());
       strikeCapletList.addAll(strikes.toList());
-      volCapletList.addAll(DoubleArray.filled(nStrikes, 0.3d).toList()); // TODO simplify
+      volCapletList.addAll(DoubleArray.of(nStrikes, n -> capVolSurface.zValue(expiry, strikes.get(n))).toList()); // initial guess
     }
+    return Triple.of(DoubleArray.copyOf(timeCapletList), DoubleArray.copyOf(strikeCapletList), DoubleArray.copyOf(volCapletList));
   }
 
   private Function<DoubleArray, DoubleArray> getPriceFunction(

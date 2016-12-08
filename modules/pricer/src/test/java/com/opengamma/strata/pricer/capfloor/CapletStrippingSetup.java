@@ -320,7 +320,8 @@ public class CapletStrippingSetup {
   //-------------------------------------------------------------------------
   // print for debugging
   protected void print(IborCapletFloorletVolatilityCalibrationResult res, DoubleArray strikes, double maxTime) {
-    System.out.println(res.getChiSquare());
+    System.out.println("Print in CapletStrippingSetup \n");
+    System.out.println("Chi-square: " + res.getChiSquare());
     IborCapletFloorletVolatilities vols = res.getVolatilities();
     final int nSamples = 51;
     final int nStrikeSamples = 51;

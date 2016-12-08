@@ -58,9 +58,6 @@ public final class DirectIborCapletFloorletDefinition
 
   @PropertyDefinition(validate = "ArgChecker.notNegative")
   private final double lambdaStrike;
-
-  @PropertyDefinition(validate = "ArgChecker.notNegative")
-  private final double error;
   /**
    * The interpolator for the caplet volatilities.
    */
@@ -75,16 +72,17 @@ public final class DirectIborCapletFloorletDefinition
   @PropertyDefinition(get = "optional")
   private final Curve shiftCurve;
 
+  // TODO separate two interpolators - interp for calib, and interp for resultant surface
+
   public static DirectIborCapletFloorletDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
       double lambdaExpiry,
       double lambdaStrike,
-      double error,
       GridSurfaceInterpolator interpolator) {
 
-    return new DirectIborCapletFloorletDefinition(name, index, dayCount, lambdaExpiry, lambdaStrike, error, interpolator, null);
+    return new DirectIborCapletFloorletDefinition(name, index, dayCount, lambdaExpiry, lambdaStrike, interpolator, null);
   }
 
   @Override
@@ -146,7 +144,6 @@ public final class DirectIborCapletFloorletDefinition
       DayCount dayCount,
       double lambdaExpiry,
       double lambdaStrike,
-      double error,
       GridSurfaceInterpolator interpolator,
       Curve shiftCurve) {
     JodaBeanUtils.notNull(name, "name");
@@ -154,14 +151,12 @@ public final class DirectIborCapletFloorletDefinition
     JodaBeanUtils.notNull(dayCount, "dayCount");
     ArgChecker.notNegative(lambdaExpiry, "lambdaExpiry");
     ArgChecker.notNegative(lambdaStrike, "lambdaStrike");
-    ArgChecker.notNegative(error, "error");
     JodaBeanUtils.notNull(interpolator, "interpolator");
     this.name = name;
     this.index = index;
     this.dayCount = dayCount;
     this.lambdaExpiry = lambdaExpiry;
     this.lambdaStrike = lambdaStrike;
-    this.error = error;
     this.interpolator = interpolator;
     this.shiftCurve = shiftCurve;
   }
@@ -231,15 +226,6 @@ public final class DirectIborCapletFloorletDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the error.
-   * @return the value of the property
-   */
-  public double getError() {
-    return error;
-  }
-
-  //-----------------------------------------------------------------------
-  /**
    * Gets the interpolator for the caplet volatilities.
    * @return the value of the property, not null
    */
@@ -280,7 +266,6 @@ public final class DirectIborCapletFloorletDefinition
           JodaBeanUtils.equal(dayCount, other.dayCount) &&
           JodaBeanUtils.equal(lambdaExpiry, other.lambdaExpiry) &&
           JodaBeanUtils.equal(lambdaStrike, other.lambdaStrike) &&
-          JodaBeanUtils.equal(error, other.error) &&
           JodaBeanUtils.equal(interpolator, other.interpolator) &&
           JodaBeanUtils.equal(shiftCurve, other.shiftCurve);
     }
@@ -295,7 +280,6 @@ public final class DirectIborCapletFloorletDefinition
     hash = hash * 31 + JodaBeanUtils.hashCode(dayCount);
     hash = hash * 31 + JodaBeanUtils.hashCode(lambdaExpiry);
     hash = hash * 31 + JodaBeanUtils.hashCode(lambdaStrike);
-    hash = hash * 31 + JodaBeanUtils.hashCode(error);
     hash = hash * 31 + JodaBeanUtils.hashCode(interpolator);
     hash = hash * 31 + JodaBeanUtils.hashCode(shiftCurve);
     return hash;
@@ -303,14 +287,13 @@ public final class DirectIborCapletFloorletDefinition
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(288);
+    StringBuilder buf = new StringBuilder(256);
     buf.append("DirectIborCapletFloorletDefinition{");
     buf.append("name").append('=').append(name).append(',').append(' ');
     buf.append("index").append('=').append(index).append(',').append(' ');
     buf.append("dayCount").append('=').append(dayCount).append(',').append(' ');
     buf.append("lambdaExpiry").append('=').append(lambdaExpiry).append(',').append(' ');
     buf.append("lambdaStrike").append('=').append(lambdaStrike).append(',').append(' ');
-    buf.append("error").append('=').append(error).append(',').append(' ');
     buf.append("interpolator").append('=').append(interpolator).append(',').append(' ');
     buf.append("shiftCurve").append('=').append(JodaBeanUtils.toString(shiftCurve));
     buf.append('}');
@@ -353,11 +336,6 @@ public final class DirectIborCapletFloorletDefinition
     private final MetaProperty<Double> lambdaStrike = DirectMetaProperty.ofImmutable(
         this, "lambdaStrike", DirectIborCapletFloorletDefinition.class, Double.TYPE);
     /**
-     * The meta-property for the {@code error} property.
-     */
-    private final MetaProperty<Double> error = DirectMetaProperty.ofImmutable(
-        this, "error", DirectIborCapletFloorletDefinition.class, Double.TYPE);
-    /**
      * The meta-property for the {@code interpolator} property.
      */
     private final MetaProperty<GridSurfaceInterpolator> interpolator = DirectMetaProperty.ofImmutable(
@@ -377,7 +355,6 @@ public final class DirectIborCapletFloorletDefinition
         "dayCount",
         "lambdaExpiry",
         "lambdaStrike",
-        "error",
         "interpolator",
         "shiftCurve");
 
@@ -400,8 +377,6 @@ public final class DirectIborCapletFloorletDefinition
           return lambdaExpiry;
         case -1568838055:  // lambdaStrike
           return lambdaStrike;
-        case 96784904:  // error
-          return error;
         case 2096253127:  // interpolator
           return interpolator;
         case 1908090253:  // shiftCurve
@@ -467,14 +442,6 @@ public final class DirectIborCapletFloorletDefinition
     }
 
     /**
-     * The meta-property for the {@code error} property.
-     * @return the meta-property, not null
-     */
-    public MetaProperty<Double> error() {
-      return error;
-    }
-
-    /**
      * The meta-property for the {@code interpolator} property.
      * @return the meta-property, not null
      */
@@ -504,8 +471,6 @@ public final class DirectIborCapletFloorletDefinition
           return ((DirectIborCapletFloorletDefinition) bean).getLambdaExpiry();
         case -1568838055:  // lambdaStrike
           return ((DirectIborCapletFloorletDefinition) bean).getLambdaStrike();
-        case 96784904:  // error
-          return ((DirectIborCapletFloorletDefinition) bean).getError();
         case 2096253127:  // interpolator
           return ((DirectIborCapletFloorletDefinition) bean).getInterpolator();
         case 1908090253:  // shiftCurve
@@ -536,7 +501,6 @@ public final class DirectIborCapletFloorletDefinition
     private DayCount dayCount;
     private double lambdaExpiry;
     private double lambdaStrike;
-    private double error;
     private GridSurfaceInterpolator interpolator;
     private Curve shiftCurve;
 
@@ -556,7 +520,6 @@ public final class DirectIborCapletFloorletDefinition
       this.dayCount = beanToCopy.getDayCount();
       this.lambdaExpiry = beanToCopy.getLambdaExpiry();
       this.lambdaStrike = beanToCopy.getLambdaStrike();
-      this.error = beanToCopy.getError();
       this.interpolator = beanToCopy.getInterpolator();
       this.shiftCurve = beanToCopy.shiftCurve;
     }
@@ -575,8 +538,6 @@ public final class DirectIborCapletFloorletDefinition
           return lambdaExpiry;
         case -1568838055:  // lambdaStrike
           return lambdaStrike;
-        case 96784904:  // error
-          return error;
         case 2096253127:  // interpolator
           return interpolator;
         case 1908090253:  // shiftCurve
@@ -603,9 +564,6 @@ public final class DirectIborCapletFloorletDefinition
           break;
         case -1568838055:  // lambdaStrike
           this.lambdaStrike = (Double) newValue;
-          break;
-        case 96784904:  // error
-          this.error = (Double) newValue;
           break;
         case 2096253127:  // interpolator
           this.interpolator = (GridSurfaceInterpolator) newValue;
@@ -651,7 +609,6 @@ public final class DirectIborCapletFloorletDefinition
           dayCount,
           lambdaExpiry,
           lambdaStrike,
-          error,
           interpolator,
           shiftCurve);
     }
@@ -713,17 +670,6 @@ public final class DirectIborCapletFloorletDefinition
     }
 
     /**
-     * Sets the error.
-     * @param error  the new value
-     * @return this, for chaining, not null
-     */
-    public Builder error(double error) {
-      ArgChecker.notNegative(error, "error");
-      this.error = error;
-      return this;
-    }
-
-    /**
      * Sets the interpolator for the caplet volatilities.
      * @param interpolator  the new value, not null
      * @return this, for chaining, not null
@@ -750,14 +696,13 @@ public final class DirectIborCapletFloorletDefinition
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(288);
+      StringBuilder buf = new StringBuilder(256);
       buf.append("DirectIborCapletFloorletDefinition.Builder{");
       buf.append("name").append('=').append(JodaBeanUtils.toString(name)).append(',').append(' ');
       buf.append("index").append('=').append(JodaBeanUtils.toString(index)).append(',').append(' ');
       buf.append("dayCount").append('=').append(JodaBeanUtils.toString(dayCount)).append(',').append(' ');
       buf.append("lambdaExpiry").append('=').append(JodaBeanUtils.toString(lambdaExpiry)).append(',').append(' ');
       buf.append("lambdaStrike").append('=').append(JodaBeanUtils.toString(lambdaStrike)).append(',').append(' ');
-      buf.append("error").append('=').append(JodaBeanUtils.toString(error)).append(',').append(' ');
       buf.append("interpolator").append('=').append(JodaBeanUtils.toString(interpolator)).append(',').append(' ');
       buf.append("shiftCurve").append('=').append(JodaBeanUtils.toString(shiftCurve));
       buf.append('}');
