@@ -68,37 +68,6 @@ abstract class IborCapletFloorletVolatilityCalibrator {
       RatesProvider ratesProvider);
 
   //-------------------------------------------------------------------------
-  // create complete lists of caps, volatilities, strikes, expiries
-  protected void reduceRawData(
-      IborCapletFloorletDefinition definition,
-      RatesProvider ratesProvider,
-      DoubleArray strikes,
-      DoubleArray volatilityData,
-      LocalDate startDate,
-      LocalDate endDate,
-      SurfaceMetadata metadata,
-      Function<Surface, IborCapletFloorletVolatilities> volatilityFunction,
-      List<Double> timeList,
-      List<Double> strikeList,
-      List<Double> volList,
-      List<ResolvedIborCapFloorLeg> capList,
-      List<Double> priceList) {
-
-    int nStrikes = strikes.size();
-    for (int i = 0; i < nStrikes; ++i) {
-      if (Double.isFinite(volatilityData.get(i))) {
-        ResolvedIborCapFloorLeg capFloor = definition.createCap(startDate, endDate, strikes.get(i)).resolve(referenceData);
-        capList.add(capFloor);
-        strikeList.add(strikes.get(i));
-        volList.add(volatilityData.get(i));
-        ConstantSurface constVolSurface = ConstantSurface.of(metadata, volatilityData.get(i));
-        IborCapletFloorletVolatilities vols = volatilityFunction.apply(constVolSurface);
-        timeList.add(vols.relativeTime(capFloor.getFinalFixingDateTime()));
-        priceList.add(pricer.presentValue(capFloor, ratesProvider, vols).getAmount());
-      }
-    }
-  }
-
   // create complete lists of caps, volatilities, strikes, expiries, errors
   protected void reduceRawData(
       IborCapletFloorletDefinition definition,

@@ -49,8 +49,8 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
-        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(), ValueType.BLACK_VOLATILITY,
-        DoubleMatrix.filled(maturities.size(), strikes.size(), error));
+        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(),
+        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.BLACK_VOLATILITY);
     IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
     SabrIborCapletFloorletVolatilities resVols =
         (SabrIborCapletFloorletVolatilities) res.getVolatilities();

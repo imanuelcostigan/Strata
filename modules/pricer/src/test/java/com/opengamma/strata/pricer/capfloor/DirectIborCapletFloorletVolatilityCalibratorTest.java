@@ -44,8 +44,8 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
-        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(), ValueType.BLACK_VOLATILITY,
-        DoubleMatrix.filled(maturities.size(), strikes.size(), error));
+        maturities, strikes, ValueType.STRIKE, createFullBlackDataMatrix(),
+        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.BLACK_VOLATILITY);
     IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
     BlackIborCapletFloorletExpiryStrikeVolatilities resVols =
         (BlackIborCapletFloorletExpiryStrikeVolatilities) res.getVolatilities();
@@ -85,8 +85,8 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     ImmutableList<Period> maturities = createNormalMaturities();
     DoubleArray strikes = createNormalStrikes();
     RawOptionData data = RawOptionData.of(
-        maturities, strikes, ValueType.STRIKE, createFullNormalDataMatrix(), ValueType.NORMAL_VOLATILITY,
-        DoubleMatrix.filled(maturities.size(), strikes.size(), error));
+        maturities, strikes, ValueType.STRIKE, createFullNormalDataMatrix(),
+        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.NORMAL_VOLATILITY);
     IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
     NormalIborCapletFloorletExpiryStrikeVolatilities resVol =
         (NormalIborCapletFloorletExpiryStrikeVolatilities) res.getVolatilities();
