@@ -458,6 +458,76 @@ public final class IborIndices {
 
   //-------------------------------------------------------------------------
   /**
+   * The 1 week BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_1W = IborIndex.of("HUF-BUBOR-1W");
+  /**
+   * The 2 week BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_2W = IborIndex.of("HUF-BUBOR-2W");
+  /**
+   * The 1 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_1M = IborIndex.of("HUF-BUBOR-1M");
+  /**
+   * The 2 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_2M = IborIndex.of("HUF-BUBOR-2M");
+  /**
+   * The 3 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_3M = IborIndex.of("HUF-BUBOR-3M");
+  /**
+   * The 6 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_6M = IborIndex.of("HUF-BUBOR-6M");
+  /**
+   * The 9 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_9M = IborIndex.of("HUF-BUBOR-9M");
+  /**
+   * The 12 month BUBOR index.
+   * <p>
+   * The "Budapest Interbank Offered Rate".
+   */
+  public static final IborIndex HUF_BUBOR_12M = IborIndex.of("HUF-BUBOR-12M");
+
+  //-------------------------------------------------------------------------
+  /**
+   * The 4 week TIIE index.
+   * <p>
+   * The "Interbank Equilibrium Interest Rate".
+   */
+  public static final IborIndex MXN_TIIE_4W = IborIndex.of("MXN-TIIE-4W");
+  /**
+   * The 13 week TIIE index.
+   * <p>
+   * The "Interbank Equilibrium Interest Rate".
+   */
+  public static final IborIndex MXN_TIIE_13W = IborIndex.of("MXN-TIIE-13W");
+  /**
+   * The 26 week TIIE index.
+   * <p>
+   * The "Interbank Equilibrium Interest Rate".
+   */
+  public static final IborIndex MXN_TIIE_26W = IborIndex.of("MXN-TIIE-26W");
+
+  //-------------------------------------------------------------------------
+  /**
    * The 1 week NIBOR index.
    * <p>
    * The "Norwegian Interbank Offered Rate".
@@ -551,6 +621,32 @@ public final class IborIndices {
    * The "Swedish Interbank Offered Rate".
    */
   public static final IborIndex SEK_STIBOR_6M = IborIndex.of("SEK-STIBOR-6M");
+
+  //-------------------------------------------------------------------------
+  /**
+   * The 1 month JIBAR index.
+   * <p>
+   * The "Johannnesburg Interbank Average Rate".
+   */
+  public static final IborIndex ZAR_JIBAR_1M = IborIndex.of("ZAR-JIBAR-1M");
+  /**
+   * The 3 month JIBAR index.
+   * <p>
+   * The "Johannnesburg Interbank Average Rate".
+   */
+  public static final IborIndex ZAR_JIBAR_3M = IborIndex.of("ZAR-JIBAR-3M");
+  /**
+   * The 6 month JIBAR index.
+   * <p>
+   * The "Johannnesburg Interbank Average Rate".
+   */
+  public static final IborIndex ZAR_JIBAR_6M = IborIndex.of("ZAR-JIBAR-6M");
+  /**
+   * The 12 month JIBAR index.
+   * <p>
+   * The "Johannnesburg Interbank Average Rate".
+   */
+  public static final IborIndex ZAR_JIBAR_12M = IborIndex.of("ZAR-JIBAR-12M");
 
   //-------------------------------------------------------------------------
   /**
