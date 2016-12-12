@@ -59,11 +59,9 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
   static {
     TRANSFORMS = new ParameterLimitsTransform[4];
     TRANSFORMS[0] = new SingleRangeLimitTransform(0.0, LimitType.GREATER_THAN); // alpha > 0
-//    TRANSFORMS[0] = new DoubleRangeLimitTransform(0.001, 2d); // alpha > 0
     TRANSFORMS[1] = new DoubleRangeLimitTransform(0.0, 1.0); // 0 <= beta <= 1
     TRANSFORMS[2] = new DoubleRangeLimitTransform(-RHO_LIMIT, RHO_LIMIT); // -1 <= rho <= 1
     TRANSFORMS[3] = new SingleRangeLimitTransform(0.0, LimitType.GREATER_THAN);
-//    TRANSFORMS[3] = new DoubleRangeLimitTransform(0.001, 2.5d);
   }
 
   /**

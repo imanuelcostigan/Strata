@@ -65,7 +65,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
       }
     }
 
-    print(res, strikes, 10d);
+//    print(res, strikes, 10d);
 //    assertTrue(res.getChiSquare() > 0d);
 //    assertEquals(resVols.getIndex(), USD_LIBOR_3M);
 //    assertEquals(resVols.getName(), definition.getName());
@@ -106,7 +106,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
       }
     }
 
-    print(res, strikes, 20d);
+//    print(res, strikes, 20d);
 
 //    assertEquals(res.getChiSquare(), 0d);
 //    assertEquals(res.getChiSquare(), 0d);

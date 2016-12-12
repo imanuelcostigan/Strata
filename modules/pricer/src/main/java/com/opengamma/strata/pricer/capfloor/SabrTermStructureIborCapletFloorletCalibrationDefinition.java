@@ -88,6 +88,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
 
   @PropertyDefinition(validate = "notNull")
   private final ImmutableList<DoubleArray> parameterCurveNodes;
+
   /**
    * The interpolator for the SABR parameters.
    */
@@ -113,6 +114,9 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
   @PropertyDefinition(validate = "notNull")
   private final SabrVolatilityFormula sabrVolatilityFormula;
 
+  @PropertyDefinition(get = "optional")
+  private final DoubleArray parameterGuess;
+
   // TODO plug in nodes separately for each curve, then combine before storage
 
   public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
@@ -131,9 +135,10 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
     return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
         name, index, dayCount, null, shiftCurve,
-        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        ImmutableList.of(alphaCurveNodes, betaCurveNodes, rhoCurveNodes, nuCurveNodes),
         interpolator, extrapolatorLeft,
-        extrapolatorRight, sabrVolatilityFormula);
+        extrapolatorRight, sabrVolatilityFormula,
+        null);
   }
 
   public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
@@ -158,7 +163,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
         name, index, dayCount, betaCurve, shiftCurve,
         ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
         interpolator, extrapolatorLeft,
-        extrapolatorRight, sabrVolatilityFormula);
+        extrapolatorRight, sabrVolatilityFormula,
+        null);
   }
 
   public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
@@ -182,7 +188,84 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
         name, index, dayCount, betaCurve, shiftCurve,
         ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
         interpolator, extrapolatorLeft,
-        extrapolatorRight, sabrVolatilityFormula);
+        extrapolatorRight, sabrVolatilityFormula,
+        null);
+  }
+
+  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      DoubleArray alphaCurveNodes,
+      DoubleArray betaCurveNodes,
+      DoubleArray rhoCurveNodes,
+      DoubleArray nuCurveNodes,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula,
+      DoubleArray parameterGuess) {
+
+    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+        name, index, dayCount, null, shiftCurve,
+        ImmutableList.of(alphaCurveNodes, betaCurveNodes, rhoCurveNodes, nuCurveNodes),
+        interpolator, extrapolatorLeft,
+        extrapolatorRight, sabrVolatilityFormula,
+        parameterGuess);
+  }
+
+  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double beta,
+      double shift,
+      DoubleArray alphaCurveNodes,
+      DoubleArray rhoCurveNodes,
+      DoubleArray nuCurveNodes,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula,
+      DoubleArray parameterGuess) {
+
+    // TODO parameterCurveNodes size 4 but 1 is empty
+    ConstantCurve betaCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+    ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
+    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+        name, index, dayCount, betaCurve, shiftCurve,
+        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        interpolator, extrapolatorLeft,
+        extrapolatorRight, sabrVolatilityFormula,
+        parameterGuess);
+  }
+
+  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double beta,
+      DoubleArray alphaCurveNodes,
+      DoubleArray rhoCurveNodes,
+      DoubleArray nuCurveNodes,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula,
+      DoubleArray parameterGuess) {
+
+    // TODO parameterCurveNodes size 4 but 1 is empty
+    ConstantCurve betaCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+        name, index, dayCount, betaCurve, shiftCurve,
+        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        interpolator, extrapolatorLeft,
+        extrapolatorRight, sabrVolatilityFormula,
+        parameterGuess);
   }
 
   //-------------------------------------------------------------------------
@@ -269,13 +352,14 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
   }
 
   public DoubleArray createFullInitialValues() {
-
+    double[] initialValues =
+        getParameterGuess().isPresent() ? getParameterGuess().get().toArray() : new double[] {0.1, 0.7, -0.2, 0.5};
     List<Double> fullInitialValues = new ArrayList<>();
 //    double[] initialValues = new double[] {0.2, 0.7, -0.2, 0.5}; // TODO flexibility??
-    double[] initialValues = new double[] {0.03, 0.7, -0.2, 0.9}; // TODO flexibility??
+////    double[] initialValues = new double[] {0.03, 0.7, -0.2, 0.9}; // TODO flexibility??
     for (int i = 0; i < 4; ++i) {
       if (i == 1 && getBetaCurve().isPresent()) {
-
+        // beta fixed
       } else {
         int nNodes = parameterCurveNodes.get(i).size();
         fullInitialValues.addAll(Collections.nCopies(nNodes, initialValues[i]));
@@ -321,7 +405,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       CurveInterpolator interpolator,
       CurveExtrapolator extrapolatorLeft,
       CurveExtrapolator extrapolatorRight,
-      SabrVolatilityFormula sabrVolatilityFormula) {
+      SabrVolatilityFormula sabrVolatilityFormula,
+      DoubleArray parameterGuess) {
     JodaBeanUtils.notNull(name, "name");
     JodaBeanUtils.notNull(index, "index");
     JodaBeanUtils.notNull(dayCount, "dayCount");
@@ -341,6 +426,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     this.extrapolatorLeft = extrapolatorLeft;
     this.extrapolatorRight = extrapolatorRight;
     this.sabrVolatilityFormula = sabrVolatilityFormula;
+    this.parameterGuess = parameterGuess;
   }
 
   @Override
@@ -467,6 +553,15 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
+   * Gets the parameterGuess.
+   * @return the optional value of the property, not null
+   */
+  public Optional<DoubleArray> getParameterGuess() {
+    return Optional.ofNullable(parameterGuess);
+  }
+
+  //-----------------------------------------------------------------------
+  /**
    * Returns a builder that allows this bean to be mutated.
    * @return the mutable builder, not null
    */
@@ -490,7 +585,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           JodaBeanUtils.equal(interpolator, other.interpolator) &&
           JodaBeanUtils.equal(extrapolatorLeft, other.extrapolatorLeft) &&
           JodaBeanUtils.equal(extrapolatorRight, other.extrapolatorRight) &&
-          JodaBeanUtils.equal(sabrVolatilityFormula, other.sabrVolatilityFormula);
+          JodaBeanUtils.equal(sabrVolatilityFormula, other.sabrVolatilityFormula) &&
+          JodaBeanUtils.equal(parameterGuess, other.parameterGuess);
     }
     return false;
   }
@@ -508,12 +604,13 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorLeft);
     hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorRight);
     hash = hash * 31 + JodaBeanUtils.hashCode(sabrVolatilityFormula);
+    hash = hash * 31 + JodaBeanUtils.hashCode(parameterGuess);
     return hash;
   }
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(352);
+    StringBuilder buf = new StringBuilder(384);
     buf.append("SabrTermStructureIborCapletFloorletCalibrationDefinition{");
     buf.append("name").append('=').append(name).append(',').append(' ');
     buf.append("index").append('=').append(index).append(',').append(' ');
@@ -524,7 +621,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     buf.append("interpolator").append('=').append(interpolator).append(',').append(' ');
     buf.append("extrapolatorLeft").append('=').append(extrapolatorLeft).append(',').append(' ');
     buf.append("extrapolatorRight").append('=').append(extrapolatorRight).append(',').append(' ');
-    buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
+    buf.append("sabrVolatilityFormula").append('=').append(sabrVolatilityFormula).append(',').append(' ');
+    buf.append("parameterGuess").append('=').append(JodaBeanUtils.toString(parameterGuess));
     buf.append('}');
     return buf.toString();
   }
@@ -591,6 +689,11 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     private final MetaProperty<SabrVolatilityFormula> sabrVolatilityFormula = DirectMetaProperty.ofImmutable(
         this, "sabrVolatilityFormula", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, SabrVolatilityFormula.class);
     /**
+     * The meta-property for the {@code parameterGuess} property.
+     */
+    private final MetaProperty<DoubleArray> parameterGuess = DirectMetaProperty.ofImmutable(
+        this, "parameterGuess", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, DoubleArray.class);
+    /**
      * The meta-properties.
      */
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
@@ -604,7 +707,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
         "interpolator",
         "extrapolatorLeft",
         "extrapolatorRight",
-        "sabrVolatilityFormula");
+        "sabrVolatilityFormula",
+        "parameterGuess");
 
     /**
      * Restricted constructor.
@@ -635,6 +739,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
+        case 1111190446:  // parameterGuess
+          return parameterGuess;
       }
       return super.metaPropertyGet(propertyName);
     }
@@ -735,6 +841,14 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       return sabrVolatilityFormula;
     }
 
+    /**
+     * The meta-property for the {@code parameterGuess} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<DoubleArray> parameterGuess() {
+      return parameterGuess;
+    }
+
     //-----------------------------------------------------------------------
     @Override
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
@@ -759,6 +873,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getExtrapolatorRight();
         case -683564541:  // sabrVolatilityFormula
           return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getSabrVolatilityFormula();
+        case 1111190446:  // parameterGuess
+          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).parameterGuess;
       }
       return super.propertyGet(bean, propertyName, quiet);
     }
@@ -790,6 +906,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     private CurveExtrapolator extrapolatorLeft;
     private CurveExtrapolator extrapolatorRight;
     private SabrVolatilityFormula sabrVolatilityFormula;
+    private DoubleArray parameterGuess;
 
     /**
      * Restricted constructor.
@@ -812,6 +929,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       this.extrapolatorLeft = beanToCopy.getExtrapolatorLeft();
       this.extrapolatorRight = beanToCopy.getExtrapolatorRight();
       this.sabrVolatilityFormula = beanToCopy.getSabrVolatilityFormula();
+      this.parameterGuess = beanToCopy.parameterGuess;
     }
 
     //-----------------------------------------------------------------------
@@ -838,6 +956,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
+        case 1111190446:  // parameterGuess
+          return parameterGuess;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
       }
@@ -876,6 +996,9 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           break;
         case -683564541:  // sabrVolatilityFormula
           this.sabrVolatilityFormula = (SabrVolatilityFormula) newValue;
+          break;
+        case 1111190446:  // parameterGuess
+          this.parameterGuess = (DoubleArray) newValue;
           break;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
@@ -919,7 +1042,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
           interpolator,
           extrapolatorLeft,
           extrapolatorRight,
-          sabrVolatilityFormula);
+          sabrVolatilityFormula,
+          parameterGuess);
     }
 
     //-----------------------------------------------------------------------
@@ -1056,10 +1180,20 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       return this;
     }
 
+    /**
+     * Sets the parameterGuess.
+     * @param parameterGuess  the new value
+     * @return this, for chaining, not null
+     */
+    public Builder parameterGuess(DoubleArray parameterGuess) {
+      this.parameterGuess = parameterGuess;
+      return this;
+    }
+
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(352);
+      StringBuilder buf = new StringBuilder(384);
       buf.append("SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder{");
       buf.append("name").append('=').append(JodaBeanUtils.toString(name)).append(',').append(' ');
       buf.append("index").append('=').append(JodaBeanUtils.toString(index)).append(',').append(' ');
@@ -1070,7 +1204,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       buf.append("interpolator").append('=').append(JodaBeanUtils.toString(interpolator)).append(',').append(' ');
       buf.append("extrapolatorLeft").append('=').append(JodaBeanUtils.toString(extrapolatorLeft)).append(',').append(' ');
       buf.append("extrapolatorRight").append('=').append(JodaBeanUtils.toString(extrapolatorRight)).append(',').append(' ');
-      buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
+      buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula)).append(',').append(' ');
+      buf.append("parameterGuess").append('=').append(JodaBeanUtils.toString(parameterGuess));
       buf.append('}');
       return buf.toString();
     }

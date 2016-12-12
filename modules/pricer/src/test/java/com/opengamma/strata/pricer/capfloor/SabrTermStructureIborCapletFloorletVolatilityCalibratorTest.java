@@ -42,10 +42,9 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
 
     SabrTermStructureIborCapletFloorletCalibrationDefinition definition =
         SabrTermStructureIborCapletFloorletCalibrationDefinition.of(
-            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
-            0.7,
+            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7,
             alphaKnots, rhoKnots, nuKnots,
-            CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.LINEAR, CurveExtrapolators.LINEAR,
+            CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
             SabrVolatilityFormula.hagan());
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
@@ -82,6 +81,8 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
 //    assertEquals(resVols.getParameters().getBetaCurve(), definition.getBetaCurve().get());
   }
 
+  // TODO flexible beta
+
   public void test_recovery_black_shift() {
 
     // choose nodes close to expiries of caps - 0.25y before end dates
@@ -95,8 +96,9 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
             0.7,
             0.05,
             alphaKnots, rhoKnots, nuKnots,
-            CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
-        SabrVolatilityFormula.hagan());
+            CurveInterpolators.PCHIP, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
+            SabrVolatilityFormula.hagan(),
+            DoubleArray.of(0.03, 0.7, -0.2, 0.9));
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
     DoubleMatrix volData =createFullBlackDataMatrix();
@@ -119,7 +121,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
         double priceOrg = LEG_PRICER_BLACK.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
         double priceCalib = LEG_PRICER_SABR.presentValue(caps.get(j), RATES_PROVIDER, resVols).getAmount();
 //        System.out.println(priceOrg + "\t" + priceCalib);
-//        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 3d);
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 5d);
       }
     }
 
