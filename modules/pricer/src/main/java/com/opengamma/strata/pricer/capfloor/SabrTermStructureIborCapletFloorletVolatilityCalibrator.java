@@ -39,6 +39,15 @@ import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.pricer.rate.RatesProvider;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
 
+/**
+ * Caplet volatilities calibration to cap volatilities based on SABR model.
+ * <p>
+ * The SABR parameters are represented by {@code NodalCurve} and the node positions on the curves are flexible.
+ * The resulting volatilities object will be {@link SabrParametersIborCapletFloorletVolatilities}.
+ * <p>
+ * The calibration to SABR is computed once the option volatility date is converted to prices. 
+ * Thus the error values in {@code RawOptionData} are applied in the price space rather than the volatility space.
+ */
 public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
     extends IborCapletFloorletVolatilityCalibrator {
 
@@ -71,30 +80,44 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
   /**
    * SABR pricer for cap/floor leg.
    */
-  private final SabrIborCapFloorLegPricer sabrLegPricer;
+  private final SabrIborCapFloorLegPricer sabrPricer;
 
+  //-------------------------------------------------------------------------
+  /**
+   * Creates an instance.
+   * <p>
+   * The epsilon is the parameter used in {@link NonLinearLeastSquare}, where the iteration stops when certain 
+   * quantities are smaller than this parameter.
+   * 
+   * @param pricer  the cap pricer
+   * @param sabrPricer  the SABR cap pricer
+   * @param epsilon  the epsilon parameter
+   * @param referenceData  the reference data
+   * @return the instance
+   */
   public static SabrTermStructureIborCapletFloorletVolatilityCalibrator of(
       VolatilityIborCapFloorLegPricer pricer,
-      SabrIborCapFloorLegPricer sabrLegPricer,
+      SabrIborCapFloorLegPricer sabrPricer,
       double epsilon,
       ReferenceData referenceData) {
 
     NonLinearLeastSquare solver = new NonLinearLeastSquare(SV_COMMONS, OG_ALGEBRA, epsilon);
-    return new SabrTermStructureIborCapletFloorletVolatilityCalibrator(pricer, sabrLegPricer, solver, referenceData);
+    return new SabrTermStructureIborCapletFloorletVolatilityCalibrator(pricer, sabrPricer, solver, referenceData);
   }
 
   // private constructor
   private SabrTermStructureIborCapletFloorletVolatilityCalibrator(
       VolatilityIborCapFloorLegPricer pricer,
-      SabrIborCapFloorLegPricer sabrLegPricer,
+      SabrIborCapFloorLegPricer sabrPricer,
       NonLinearLeastSquare solver,
       ReferenceData referenceData) {
 
     super(pricer, referenceData);
-    this.sabrLegPricer = ArgChecker.notNull(sabrLegPricer, "sabrLegPricer");
+    this.sabrPricer = ArgChecker.notNull(sabrPricer, "sabrPricer");
     this.solver = ArgChecker.notNull(solver, "solver");
   }
 
+  //-------------------------------------------------------------------------
   @Override
   public IborCapletFloorletVolatilityCalibrationResult calibrate(
       IborCapletFloorletDefinition definition,
@@ -125,22 +148,29 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
     List<Double> priceList = new ArrayList<>();
     List<Double> errorList = new ArrayList<>();
     DoubleMatrix errorMatrix = capFloorData.getError().orElse(DoubleMatrix.filled(nExpiries, strikes.size(), 1d));
+    int[] startIndex = new int[nExpiries + 1];
     for (int i = 0; i < nExpiries; ++i) {
       LocalDate endDate = baseDate.plus(expiries.get(i));
       DoubleArray volatilityForTime = capFloorData.getData().row(i);
       DoubleArray errorForTime = errorMatrix.row(i);
       reduceRawData(sabrDefinition, ratesProvider, capFloorData.getStrikes(), volatilityForTime, errorForTime, startDate,
           endDate, metadata, volatilitiesFunction, timeList, strikeList, volList, capList, priceList, errorList);
+      startIndex[i + 1] = volList.size();
+      ArgChecker.isTrue(startIndex[i + 1] > startIndex[i], "no valid option data for {}", expiries.get(i));
     }
 
     List<CurveMetadata> metadataList = sabrDefinition.createSabrParameterMetadata();
     DoubleArray initialValues = sabrDefinition.createFullInitialValues();
     List<Curve> curveList = sabrDefinition.createSabrParameterCurve(metadataList, initialValues);
-    SabrParameters sabrParams = SabrParameters.of(
-        curveList.get(0), curveList.get(1), curveList.get(2), curveList.get(3),
-        sabrDefinition.getShiftCurve(), sabrDefinition.getSabrVolatilityFormula());
-    SabrParametersIborCapletFloorletVolatilities vols =
-        SabrParametersIborCapletFloorletVolatilities.of(sabrDefinition.getName(), index, calibrationDateTime, sabrParams);
+    SabrParameters sabrParamsInitial = SabrParameters.of(
+        curveList.get(0),
+        curveList.get(1),
+        curveList.get(2),
+        curveList.get(3),
+        sabrDefinition.getShiftCurve(),
+        sabrDefinition.getSabrVolatilityFormula());
+    SabrParametersIborCapletFloorletVolatilities vols = SabrParametersIborCapletFloorletVolatilities.of(
+        sabrDefinition.getName(), index, calibrationDateTime, sabrParamsInitial);
 
     UncoupledParameterTransforms transform = new UncoupledParameterTransforms(
         initialValues, sabrDefinition.createFullTransform(TRANSFORMS), new BitSet());
@@ -174,7 +204,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
       public DoubleArray apply(DoubleArray x) {
         SabrParametersIborCapletFloorletVolatilities volsNew = updateParameters(sabrDefinition, volatilities, x);
         return DoubleArray.of(capList.size(),
-            n -> sabrLegPricer.presentValue(capList.get(n), ratesProvider, volsNew).getAmount() / priceList.get(n));
+            n -> sabrPricer.presentValue(capList.get(n), ratesProvider, volsNew).getAmount() / priceList.get(n));
       }
     };
     return priceFunction;
@@ -202,15 +232,15 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
         double[][] jacobian = new double[nCaps][];
         for (int i = 0; i < nCaps; ++i) {
           PointSensitivities point =
-              sabrLegPricer.presentValueSensitivityModelParamsSabr(capList.get(i), ratesProvider, volsNew).build();
+              sabrPricer.presentValueSensitivityModelParamsSabr(capList.get(i), ratesProvider, volsNew).build();
           CurrencyParameterSensitivities sensi = volsNew.parameterSensitivity(point);
           double targetPriceInv = 1d / priceList.get(i);
           DoubleArray sensitivities = sensi.getSensitivity(alphaName, currency).getSensitivity();
           if (!sabrDefinition.getBetaCurve().isPresent()) {
-            sensitivities =
-                sensitivities.concat(sensi.getSensitivity(betaName, currency).getSensitivity());
+            sensitivities = sensitivities.concat(sensi.getSensitivity(betaName, currency).getSensitivity());
           }
-          jacobian[i] = sensitivities.concat(sensi.getSensitivity(rhoName, currency).getSensitivity())
+          jacobian[i] = sensitivities
+              .concat(sensi.getSensitivity(rhoName, currency).getSensitivity())
               .concat(sensi.getSensitivity(nuName, currency).getSensitivity())
               .multipliedBy(targetPriceInv)
               .toArray();
@@ -235,8 +265,12 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
     List<Curve> newCurveList = sabrDefinition.createSabrParameterCurve(
         ImmutableList.of(alphaMetadata, betaMetadata, rhoMetadata, nuMetadata), newValues);
     SabrParameters newSabrParams = SabrParameters.of(
-        newCurveList.get(0), newCurveList.get(1), newCurveList.get(2), newCurveList.get(3),
-        sabrDefinition.getShiftCurve(), sabrDefinition.getSabrVolatilityFormula());
+        newCurveList.get(0),
+        newCurveList.get(1),
+        newCurveList.get(2),
+        newCurveList.get(3),
+        sabrDefinition.getShiftCurve(),
+        sabrDefinition.getSabrVolatilityFormula());
     SabrParametersIborCapletFloorletVolatilities newVols = SabrParametersIborCapletFloorletVolatilities.of(
         volatilities.getName(), volatilities.getIndex(), volatilities.getValuationDateTime(), newSabrParams);
     return newVols;

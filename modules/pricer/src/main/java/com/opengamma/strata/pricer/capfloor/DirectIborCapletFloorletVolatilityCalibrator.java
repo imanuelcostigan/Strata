@@ -5,6 +5,8 @@
  */
 package com.opengamma.strata.pricer.capfloor;
 
+import static com.opengamma.strata.market.ValueType.NORMAL_VOLATILITY;
+
 import java.time.LocalDate;
 import java.time.Period;
 import java.time.ZonedDateTime;
@@ -18,6 +20,7 @@ import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.array.DoubleMatrix;
 import com.opengamma.strata.collect.tuple.Triple;
+import com.opengamma.strata.market.curve.Curve;
 import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
 import com.opengamma.strata.market.surface.InterpolatedNodalSurface;
 import com.opengamma.strata.market.surface.Surface;
@@ -31,6 +34,21 @@ import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.pricer.rate.RatesProvider;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
 
+/**
+ * Caplet volatilities calibration to cap volatilities. 
+ * <p>
+ * The volatilities of the constituent caplets in the market caps are "model parameters"  
+ * and calibrated to the market data under a certain penalty constraint.
+ * <p>
+ * If the shift curve is not present in {@code DirectIborCapletFloorletDefinition}, 
+ * the resultant volatility type is the same as the input volatility type. e.g., 
+ * Black caplet volatilities are returned if Balck cap volatilities are plugged in. 
+ * On the other hand, if the shift curve is present in {@code DirectIborCapletFloorletDefinition}, 
+ * Black caplet volatilities are returned for any input volatility type.  
+ * <p>
+ * The calibration is conducted once the cap volatilities are converted to cap prices. 
+ * Thus the error values in {@code RawOptionData} are applied in the price space rather than the volatility space.
+ */
 public class DirectIborCapletFloorletVolatilityCalibrator
     extends IborCapletFloorletVolatilityCalibrator {
 
@@ -49,7 +67,7 @@ public class DirectIborCapletFloorletVolatilityCalibrator
   /**
    * The conventional surface interpolator for the calibration.
    * <p>
-   * Since node points are always hit in the calibration, this interpolator is not used generally.
+   * Since node points are always hit in the calibration, the calibration does not rely on this interpolator generally.
    */
   private static final GridSurfaceInterpolator INTERPOLATOR =
       GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR);
@@ -96,11 +114,10 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       RawOptionData capFloorData,
       RatesProvider ratesProvider) {
 
-    // TODO check at leaset one of vols for the longest period is non-null.
-
     ArgChecker.isTrue(ratesProvider.getValuationDate().equals(calibrationDateTime.toLocalDate()),
         "valuationDate of ratesProvider should be coherent to calibrationDateTime");
-    ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletDefinition);
+    ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletDefinition,
+        "definition should be DirectIborCapletFloorletDefinition");
     DirectIborCapletFloorletDefinition directDefinition = (DirectIborCapletFloorletDefinition) definition;
     IborIndex index = directDefinition.getIndex();
     LocalDate calibrationDate = calibrationDateTime.toLocalDate();
@@ -119,12 +136,15 @@ public class DirectIborCapletFloorletVolatilityCalibrator
     List<Double> priceList = new ArrayList<>();
     List<Double> errorList = new ArrayList<>();
     DoubleMatrix errorMatrix = capFloorData.getError().orElse(DoubleMatrix.filled(nExpiries, strikes.size(), 1d));
+    int[] startIndex = new int[nExpiries + 1];
     for (int i = 0; i < nExpiries; ++i) {
       LocalDate endDate = baseDate.plus(expiries.get(i));
       DoubleArray volatilityForTime = capFloorData.getData().row(i);
       DoubleArray errorForTime = errorMatrix.row(i);
       reduceRawData(directDefinition, ratesProvider, capFloorData.getStrikes(), volatilityForTime, errorForTime, startDate,
           endDate, metadata, volatilitiesFunction, timeList, strikeList, volList, capList, priceList, errorList);
+      startIndex[i + 1] = volList.size();
+      ArgChecker.isTrue(startIndex[i + 1] > startIndex[i], "no valid option data for {}", expiries.get(i));
     }
     InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
         metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), DoubleArray.copyOf(volList), INTERPOLATOR);
@@ -138,17 +158,41 @@ public class DirectIborCapletFloorletVolatilityCalibrator
         metadata, capletNodes.getFirst(), capletNodes.getSecond(), capletNodes.getThird(), INTERPOLATOR);
     DoubleMatrix penaltyMatrix = directDefinition.computePenaltyMatrix(strikes, capletExpiries);
 
+    DoubleArray initialGuess = capletNodes.getThird();
+    if (directDefinition.getShiftCurve().isPresent()) {
+      Curve shiftCurve = directDefinition.getShiftCurve().get();
+      volatilitiesFunction = createShiftedBlackVolatilitiesFunction(index, calibrationDateTime, shiftCurve);
+      if (capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
+        initialGuess = DoubleArray.of(capList.size(), n -> volList.get(n) /
+            (ratesProvider.iborIndexRates(index).rate(capList.get(n).getFinalPeriod().getIborRate().getObservation()) +
+                shiftCurve.yValue(timeList.get(n)))); // TODO this is wrong size!
+      }
+    }
     LeastSquareResults res = solver.solve(
         DoubleArray.copyOf(priceList),
         DoubleArray.copyOf(errorList),
         getPriceFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
         getJacobianFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
-        capletNodes.getThird(),
+        initialGuess,
         penaltyMatrix,
         POSITIVE);
     InterpolatedNodalSurface resSurface = InterpolatedNodalSurface.of(
         metadata, capletNodes.getFirst(), capletNodes.getSecond(), res.getFitParameters(), directDefinition.getInterpolator());
     return IborCapletFloorletVolatilityCalibrationResult.ofLestSquare(volatilitiesFunction.apply(resSurface), res.getChiSq());
+  }
+
+  private Function<Surface, IborCapletFloorletVolatilities> createShiftedBlackVolatilitiesFunction(
+      IborIndex index,
+      ZonedDateTime calibrationDateTime,
+      Curve shiftCurve) {
+
+    Function<Surface, IborCapletFloorletVolatilities> func = new Function<Surface, IborCapletFloorletVolatilities>() {
+      @Override
+      public IborCapletFloorletVolatilities apply(Surface s) {
+        return ShiftedBlackIborCapletFloorletExpiryStrikeVolatilities.of(index, calibrationDateTime, s, shiftCurve);
+      }
+    };
+    return func;
   }
 
   //-------------------------------------------------------------------------

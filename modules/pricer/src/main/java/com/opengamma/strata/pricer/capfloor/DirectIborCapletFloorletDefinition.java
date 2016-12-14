@@ -1,3 +1,8 @@
+/**
+ * Copyright (C) 2016 - present by OpenGamma Inc. and the OpenGamma group of companies
+ *
+ * Please see distribution for license.
+ */
 package com.opengamma.strata.pricer.capfloor;
 
 import static com.opengamma.strata.market.ValueType.BLACK_VOLATILITY;
@@ -26,6 +31,7 @@ import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.array.DoubleMatrix;
+import com.opengamma.strata.market.curve.ConstantCurve;
 import com.opengamma.strata.market.curve.Curve;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.market.surface.Surfaces;
@@ -33,6 +39,14 @@ import com.opengamma.strata.market.surface.interpolator.GridSurfaceInterpolator;
 import com.opengamma.strata.math.impl.interpolation.PenaltyMatrixGenerator;
 import com.opengamma.strata.pricer.option.RawOptionData;
 
+/**
+ * Definition of caplet volatilities calibration.
+ * <p>
+ * This definition is used with {@link DirectIborCapletFloorletVolatilityCalibrator}. 
+ * The volatilities of the constituent caplets in the market caps are "model parameters" 
+ * and calibrated to the market data under a certain penalty constraint.
+ * The resulting volatilities object will be a set of caplet volatilities interpolated by {@link GridSurfaceInterpolator}.
+ */
 @BeanDefinition
 public final class DirectIborCapletFloorletDefinition
     implements IborCapletFloorletDefinition, ImmutableBean, Serializable {
@@ -52,10 +66,14 @@ public final class DirectIborCapletFloorletDefinition
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final DayCount dayCount;
-
+  /**
+   * Penalty intensity parameter for expiry dimension.
+   */
   @PropertyDefinition(validate = "ArgChecker.notNegative")
   private final double lambdaExpiry;
-
+  /**
+   * Penalty intensity parameter for strike dimension.
+   */
   @PropertyDefinition(validate = "ArgChecker.notNegative")
   private final double lambdaStrike;
   /**
@@ -72,8 +90,7 @@ public final class DirectIborCapletFloorletDefinition
   @PropertyDefinition(get = "optional")
   private final Curve shiftCurve;
 
-  // TODO separate two interpolators - interp for calib, and interp for resultant surface
-
+  //-------------------------------------------------------------------------
   public static DirectIborCapletFloorletDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
@@ -85,6 +102,20 @@ public final class DirectIborCapletFloorletDefinition
     return new DirectIborCapletFloorletDefinition(name, index, dayCount, lambdaExpiry, lambdaStrike, interpolator, null);
   }
 
+  public static DirectIborCapletFloorletDefinition of(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double lambdaExpiry,
+      double lambdaStrike,
+      GridSurfaceInterpolator interpolator,
+      double shift) {
+
+    ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
+    return new DirectIborCapletFloorletDefinition(name, index, dayCount, lambdaExpiry, lambdaStrike, interpolator, shiftCurve);
+  }
+
+  //-------------------------------------------------------------------------
   @Override
   public SurfaceMetadata createMetadata(RawOptionData capFloorData) {
     SurfaceMetadata metadata;
@@ -208,7 +239,7 @@ public final class DirectIborCapletFloorletDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the lambdaExpiry.
+   * Gets penalty intensity parameter for expiry dimension.
    * @return the value of the property
    */
   public double getLambdaExpiry() {
@@ -217,7 +248,7 @@ public final class DirectIborCapletFloorletDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the lambdaStrike.
+   * Gets penalty intensity parameter for strike dimension.
    * @return the value of the property
    */
   public double getLambdaStrike() {
@@ -648,7 +679,7 @@ public final class DirectIborCapletFloorletDefinition
     }
 
     /**
-     * Sets the lambdaExpiry.
+     * Sets penalty intensity parameter for expiry dimension.
      * @param lambdaExpiry  the new value
      * @return this, for chaining, not null
      */
@@ -659,7 +690,7 @@ public final class DirectIborCapletFloorletDefinition
     }
 
     /**
-     * Sets the lambdaStrike.
+     * Sets penalty intensity parameter for strike dimension.
      * @param lambdaStrike  the new value
      * @return this, for chaining, not null
      */
