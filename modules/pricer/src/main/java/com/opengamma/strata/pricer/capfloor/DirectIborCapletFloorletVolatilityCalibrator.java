@@ -116,9 +116,9 @@ public class DirectIborCapletFloorletVolatilityCalibrator
 
     ArgChecker.isTrue(ratesProvider.getValuationDate().equals(calibrationDateTime.toLocalDate()),
         "valuationDate of ratesProvider should be coherent to calibrationDateTime");
-    ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletDefinition,
-        "definition should be DirectIborCapletFloorletDefinition");
-    DirectIborCapletFloorletDefinition directDefinition = (DirectIborCapletFloorletDefinition) definition;
+    ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletVolatilityDefinition,
+        "definition should be DirectIborCapletFloorletVolatilityDefinition");
+    DirectIborCapletFloorletVolatilityDefinition directDefinition = (DirectIborCapletFloorletVolatilityDefinition) definition;
     IborIndex index = directDefinition.getIndex();
     LocalDate calibrationDate = calibrationDateTime.toLocalDate();
     LocalDate baseDate = index.getEffectiveDateOffset().adjust(calibrationDate, referenceData);

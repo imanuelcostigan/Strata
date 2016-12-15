@@ -48,13 +48,13 @@ import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
  * The calibration to SABR is computed once the option volatility date is converted to prices. 
  * Thus the error values in {@code RawOptionData} are applied in the price space rather than the volatility space.
  */
-public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
+public class SabrIborCapletFloorletVolatilityCalibrator
     extends IborCapletFloorletVolatilityCalibrator {
 
   /**
    * Default implementation.
    */
-  public static final SabrTermStructureIborCapletFloorletVolatilityCalibrator DEFAULT = of(
+  public static final SabrIborCapletFloorletVolatilityCalibrator DEFAULT = of(
       VolatilityIborCapFloorLegPricer.DEFAULT, SabrIborCapFloorLegPricer.DEFAULT, 1.0e-10, ReferenceData.standard());
 
   /**
@@ -95,18 +95,18 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
    * @param referenceData  the reference data
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletVolatilityCalibrator of(
+  public static SabrIborCapletFloorletVolatilityCalibrator of(
       VolatilityIborCapFloorLegPricer pricer,
       SabrIborCapFloorLegPricer sabrPricer,
       double epsilon,
       ReferenceData referenceData) {
 
     NonLinearLeastSquare solver = new NonLinearLeastSquare(SV_COMMONS, OG_ALGEBRA, epsilon);
-    return new SabrTermStructureIborCapletFloorletVolatilityCalibrator(pricer, sabrPricer, solver, referenceData);
+    return new SabrIborCapletFloorletVolatilityCalibrator(pricer, sabrPricer, solver, referenceData);
   }
 
   // private constructor
-  private SabrTermStructureIborCapletFloorletVolatilityCalibrator(
+  private SabrIborCapletFloorletVolatilityCalibrator(
       VolatilityIborCapFloorLegPricer pricer,
       SabrIborCapFloorLegPricer sabrPricer,
       NonLinearLeastSquare solver,
@@ -127,10 +127,10 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
 
     ArgChecker.isTrue(ratesProvider.getValuationDate().equals(calibrationDateTime.toLocalDate()),
         "valuationDate of ratesProvider should be coherent to calibrationDateTime");
-    ArgChecker.isTrue(definition instanceof SabrTermStructureIborCapletFloorletCalibrationDefinition,
+    ArgChecker.isTrue(definition instanceof SabrIborCapletFloorletVolatilityCalibrationDefinition,
         "definition should be SabrTermStructureIborCapletFloorletCalibrationDefinition");
-    SabrTermStructureIborCapletFloorletCalibrationDefinition sabrDefinition =
-        (SabrTermStructureIborCapletFloorletCalibrationDefinition) definition;
+    SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition =
+        (SabrIborCapletFloorletVolatilityCalibrationDefinition) definition;
     IborIndex index = sabrDefinition.getIndex();
     LocalDate calibrationDate = calibrationDateTime.toLocalDate();
     LocalDate baseDate = index.getEffectiveDateOffset().adjust(calibrationDate, referenceData);
@@ -193,7 +193,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
 
   // price function
   private Function<DoubleArray, DoubleArray> createPriceFunction(
-      SabrTermStructureIborCapletFloorletCalibrationDefinition sabrDefinition,
+      SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition,
       RatesProvider ratesProvider,
       SabrParametersIborCapletFloorletVolatilities volatilities,
       List<ResolvedIborCapFloorLeg> capList,
@@ -212,7 +212,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
 
   // node sensitivity function
   private Function<DoubleArray, DoubleMatrix> createJacobianFunction(
-      SabrTermStructureIborCapletFloorletCalibrationDefinition sabrDefinition,
+      SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition,
       RatesProvider ratesProvider,
       SabrParametersIborCapletFloorletVolatilities volatilities,
       List<ResolvedIborCapFloorLeg> capList,
@@ -253,7 +253,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
 
   // update vols
   private SabrParametersIborCapletFloorletVolatilities updateParameters(
-      SabrTermStructureIborCapletFloorletCalibrationDefinition sabrDefinition,
+      SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition,
       SabrParametersIborCapletFloorletVolatilities volatilities,
       DoubleArray newValues) {
 

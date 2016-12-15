@@ -62,7 +62,7 @@ import com.opengamma.strata.pricer.option.RawOptionData;
  * The resulting volatilities object will be {@link SabrParametersIborCapletFloorletVolatilities}.
  */
 @BeanDefinition
-public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
+public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     implements IborCapletFloorletVolatilityDefinition, ImmutableBean, Serializable {
 
   /**
@@ -166,7 +166,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * @param sabrVolatilityFormula  the SABR formula
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -183,7 +183,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     ConstantCurve betaCurve = ConstantCurve.of(
         Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
     ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
         name,
         index,
         dayCount,
@@ -215,7 +215,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * @param sabrVolatilityFormula  the SABR formula
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -231,7 +231,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     ConstantCurve betaCurve = ConstantCurve.of(
         Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
     Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
         name,
         index,
         dayCount,
@@ -262,7 +262,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * @param initialParameters  the initial parameters
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -277,7 +277,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       DoubleArray initialParameters) {
 
     Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
         name,
         index,
         dayCount,
@@ -312,7 +312,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * @param initialParameters  the initial parameters
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -330,7 +330,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     ConstantCurve betaCurve = ConstantCurve.of(
         Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
     ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
         name, index, dayCount, betaCurve, shiftCurve,
         ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
         interpolator, extrapolatorLeft,
@@ -358,7 +358,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * @param initialParameters  the initial parameters
    * @return the instance
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -375,7 +375,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     ConstantCurve betaCurve = ConstantCurve.of(
         Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
     Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
         name, index, dayCount, betaCurve, shiftCurve,
         ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
         interpolator, extrapolatorLeft,
@@ -390,7 +390,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       ArgChecker.isFalse(parameterCurveNodes.get(0).isEmpty(), "The alpha curve nodes must not be empty");
       ArgChecker.isFalse(parameterCurveNodes.get(2).isEmpty(), "The rho curve nodes must not be empty");
       ArgChecker.isFalse(parameterCurveNodes.get(3).isEmpty(), "The nu curve nodes must not be empty");
-      if (betaCurve != null) {
+      if (betaCurve == null) {
         ArgChecker.isFalse(parameterCurveNodes.get(1).isEmpty(), "The beta curve nodes must not be empty");
       }
     }
@@ -515,15 +515,15 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
   //------------------------- AUTOGENERATED START -------------------------
   ///CLOVER:OFF
   /**
-   * The meta-bean for {@code SabrTermStructureIborCapletFloorletCalibrationDefinition}.
+   * The meta-bean for {@code SabrIborCapletFloorletVolatilityCalibrationDefinition}.
    * @return the meta-bean, not null
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition.Meta meta() {
-    return SabrTermStructureIborCapletFloorletCalibrationDefinition.Meta.INSTANCE;
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition.Meta meta() {
+    return SabrIborCapletFloorletVolatilityCalibrationDefinition.Meta.INSTANCE;
   }
 
   static {
-    JodaBeanUtils.registerMetaBean(SabrTermStructureIborCapletFloorletCalibrationDefinition.Meta.INSTANCE);
+    JodaBeanUtils.registerMetaBean(SabrIborCapletFloorletVolatilityCalibrationDefinition.Meta.INSTANCE);
   }
 
   /**
@@ -535,11 +535,11 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
    * Returns a builder used to create an instance of the bean.
    * @return the builder, not null
    */
-  public static SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder builder() {
-    return new SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder();
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder builder() {
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder();
   }
 
-  private SabrTermStructureIborCapletFloorletCalibrationDefinition(
+  private SabrIborCapletFloorletVolatilityCalibrationDefinition(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -575,8 +575,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
   }
 
   @Override
-  public SabrTermStructureIborCapletFloorletCalibrationDefinition.Meta metaBean() {
-    return SabrTermStructureIborCapletFloorletCalibrationDefinition.Meta.INSTANCE;
+  public SabrIborCapletFloorletVolatilityCalibrationDefinition.Meta metaBean() {
+    return SabrIborCapletFloorletVolatilityCalibrationDefinition.Meta.INSTANCE;
   }
 
   @Override
@@ -730,7 +730,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
       return true;
     }
     if (obj != null && obj.getClass() == this.getClass()) {
-      SabrTermStructureIborCapletFloorletCalibrationDefinition other = (SabrTermStructureIborCapletFloorletCalibrationDefinition) obj;
+      SabrIborCapletFloorletVolatilityCalibrationDefinition other = (SabrIborCapletFloorletVolatilityCalibrationDefinition) obj;
       return JodaBeanUtils.equal(name, other.name) &&
           JodaBeanUtils.equal(index, other.index) &&
           JodaBeanUtils.equal(dayCount, other.dayCount) &&
@@ -766,7 +766,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
   @Override
   public String toString() {
     StringBuilder buf = new StringBuilder(384);
-    buf.append("SabrTermStructureIborCapletFloorletCalibrationDefinition{");
+    buf.append("SabrIborCapletFloorletVolatilityCalibrationDefinition{");
     buf.append("name").append('=').append(name).append(',').append(' ');
     buf.append("index").append('=').append(index).append(',').append(' ');
     buf.append("dayCount").append('=').append(dayCount).append(',').append(' ');
@@ -784,7 +784,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * The meta-bean for {@code SabrTermStructureIborCapletFloorletCalibrationDefinition}.
+   * The meta-bean for {@code SabrIborCapletFloorletVolatilityCalibrationDefinition}.
    */
   public static final class Meta extends DirectMetaBean {
     /**
@@ -796,58 +796,58 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
      * The meta-property for the {@code name} property.
      */
     private final MetaProperty<IborCapletFloorletVolatilitiesName> name = DirectMetaProperty.ofImmutable(
-        this, "name", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, IborCapletFloorletVolatilitiesName.class);
+        this, "name", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, IborCapletFloorletVolatilitiesName.class);
     /**
      * The meta-property for the {@code index} property.
      */
     private final MetaProperty<IborIndex> index = DirectMetaProperty.ofImmutable(
-        this, "index", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, IborIndex.class);
+        this, "index", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, IborIndex.class);
     /**
      * The meta-property for the {@code dayCount} property.
      */
     private final MetaProperty<DayCount> dayCount = DirectMetaProperty.ofImmutable(
-        this, "dayCount", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, DayCount.class);
+        this, "dayCount", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, DayCount.class);
     /**
      * The meta-property for the {@code betaCurve} property.
      */
     private final MetaProperty<Curve> betaCurve = DirectMetaProperty.ofImmutable(
-        this, "betaCurve", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, Curve.class);
+        this, "betaCurve", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, Curve.class);
     /**
      * The meta-property for the {@code shiftCurve} property.
      */
     private final MetaProperty<Curve> shiftCurve = DirectMetaProperty.ofImmutable(
-        this, "shiftCurve", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, Curve.class);
+        this, "shiftCurve", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, Curve.class);
     /**
      * The meta-property for the {@code parameterCurveNodes} property.
      */
     @SuppressWarnings({"unchecked", "rawtypes" })
     private final MetaProperty<ImmutableList<DoubleArray>> parameterCurveNodes = DirectMetaProperty.ofImmutable(
-        this, "parameterCurveNodes", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, (Class) ImmutableList.class);
+        this, "parameterCurveNodes", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, (Class) ImmutableList.class);
     /**
      * The meta-property for the {@code interpolator} property.
      */
     private final MetaProperty<CurveInterpolator> interpolator = DirectMetaProperty.ofImmutable(
-        this, "interpolator", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, CurveInterpolator.class);
+        this, "interpolator", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, CurveInterpolator.class);
     /**
      * The meta-property for the {@code extrapolatorLeft} property.
      */
     private final MetaProperty<CurveExtrapolator> extrapolatorLeft = DirectMetaProperty.ofImmutable(
-        this, "extrapolatorLeft", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, CurveExtrapolator.class);
+        this, "extrapolatorLeft", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, CurveExtrapolator.class);
     /**
      * The meta-property for the {@code extrapolatorRight} property.
      */
     private final MetaProperty<CurveExtrapolator> extrapolatorRight = DirectMetaProperty.ofImmutable(
-        this, "extrapolatorRight", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, CurveExtrapolator.class);
+        this, "extrapolatorRight", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, CurveExtrapolator.class);
     /**
      * The meta-property for the {@code sabrVolatilityFormula} property.
      */
     private final MetaProperty<SabrVolatilityFormula> sabrVolatilityFormula = DirectMetaProperty.ofImmutable(
-        this, "sabrVolatilityFormula", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, SabrVolatilityFormula.class);
+        this, "sabrVolatilityFormula", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, SabrVolatilityFormula.class);
     /**
      * The meta-property for the {@code initialParameters} property.
      */
     private final MetaProperty<DoubleArray> initialParameters = DirectMetaProperty.ofImmutable(
-        this, "initialParameters", SabrTermStructureIborCapletFloorletCalibrationDefinition.class, DoubleArray.class);
+        this, "initialParameters", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, DoubleArray.class);
     /**
      * The meta-properties.
      */
@@ -901,13 +901,13 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     }
 
     @Override
-    public SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder builder() {
-      return new SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder();
+    public SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder builder() {
+      return new SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder();
     }
 
     @Override
-    public Class<? extends SabrTermStructureIborCapletFloorletCalibrationDefinition> beanType() {
-      return SabrTermStructureIborCapletFloorletCalibrationDefinition.class;
+    public Class<? extends SabrIborCapletFloorletVolatilityCalibrationDefinition> beanType() {
+      return SabrIborCapletFloorletVolatilityCalibrationDefinition.class;
     }
 
     @Override
@@ -1009,27 +1009,27 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
       switch (propertyName.hashCode()) {
         case 3373707:  // name
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getName();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getName();
         case 100346066:  // index
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getIndex();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getIndex();
         case 1905311443:  // dayCount
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getDayCount();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getDayCount();
         case 1607020767:  // betaCurve
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).betaCurve;
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).betaCurve;
         case 1908090253:  // shiftCurve
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getShiftCurve();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getShiftCurve();
         case -1431162997:  // parameterCurveNodes
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getParameterCurveNodes();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getParameterCurveNodes();
         case 2096253127:  // interpolator
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getInterpolator();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getInterpolator();
         case 1271703994:  // extrapolatorLeft
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getExtrapolatorLeft();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getExtrapolatorLeft();
         case 773779145:  // extrapolatorRight
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getExtrapolatorRight();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getExtrapolatorRight();
         case -683564541:  // sabrVolatilityFormula
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).getSabrVolatilityFormula();
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getSabrVolatilityFormula();
         case 1451864142:  // initialParameters
-          return ((SabrTermStructureIborCapletFloorletCalibrationDefinition) bean).initialParameters;
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).initialParameters;
       }
       return super.propertyGet(bean, propertyName, quiet);
     }
@@ -1047,9 +1047,9 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * The bean-builder for {@code SabrTermStructureIborCapletFloorletCalibrationDefinition}.
+   * The bean-builder for {@code SabrIborCapletFloorletVolatilityCalibrationDefinition}.
    */
-  public static final class Builder extends DirectFieldsBeanBuilder<SabrTermStructureIborCapletFloorletCalibrationDefinition> {
+  public static final class Builder extends DirectFieldsBeanBuilder<SabrIborCapletFloorletVolatilityCalibrationDefinition> {
 
     private IborCapletFloorletVolatilitiesName name;
     private IborIndex index;
@@ -1073,7 +1073,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
      * Restricted copy constructor.
      * @param beanToCopy  the bean to copy from, not null
      */
-    private Builder(SabrTermStructureIborCapletFloorletCalibrationDefinition beanToCopy) {
+    private Builder(SabrIborCapletFloorletVolatilityCalibrationDefinition beanToCopy) {
       this.name = beanToCopy.getName();
       this.index = beanToCopy.getIndex();
       this.dayCount = beanToCopy.getDayCount();
@@ -1186,8 +1186,8 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     }
 
     @Override
-    public SabrTermStructureIborCapletFloorletCalibrationDefinition build() {
-      return new SabrTermStructureIborCapletFloorletCalibrationDefinition(
+    public SabrIborCapletFloorletVolatilityCalibrationDefinition build() {
+      return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
           name,
           index,
           dayCount,
@@ -1359,7 +1359,7 @@ public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
     @Override
     public String toString() {
       StringBuilder buf = new StringBuilder(384);
-      buf.append("SabrTermStructureIborCapletFloorletCalibrationDefinition.Builder{");
+      buf.append("SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder{");
       buf.append("name").append('=').append(JodaBeanUtils.toString(name)).append(',').append(' ');
       buf.append("index").append('=').append(JodaBeanUtils.toString(index)).append(',').append(' ');
       buf.append("dayCount").append('=').append(JodaBeanUtils.toString(dayCount)).append(',').append(' ');

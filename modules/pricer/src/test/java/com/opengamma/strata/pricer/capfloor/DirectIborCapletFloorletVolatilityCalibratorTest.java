@@ -39,7 +39,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     double error = 1.0e-5;
 
 
-    DirectIborCapletFloorletDefinition definition = DirectIborCapletFloorletDefinition.of(
+    DirectIborCapletFloorletVolatilityDefinition definition = DirectIborCapletFloorletVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
         GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR));
     ImmutableList<Period> maturities = createBlackMaturities();
@@ -79,7 +79,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     double lambdaT = 0.01;
     double lambdaK = 0.01;
     double error = 1.0e-3;
-    DirectIborCapletFloorletDefinition definition = DirectIborCapletFloorletDefinition.of(
+    DirectIborCapletFloorletVolatilityDefinition definition = DirectIborCapletFloorletVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
         GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR));
     ImmutableList<Period> maturities = createBlackMaturities();
@@ -101,7 +101,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     double lambdaT = 0.01;
     double lambdaK = 0.01;
     double error = 1.0e-3;
-    DirectIborCapletFloorletDefinition definition = DirectIborCapletFloorletDefinition.of(
+    DirectIborCapletFloorletVolatilityDefinition definition = DirectIborCapletFloorletVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
         GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR));
     ImmutableList<Period> maturities = createBlackMaturities();
@@ -124,7 +124,7 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
     double lambdaT = 0.07;
     double lambdaK = 0.07;
     double error = 1.0e-5;
-    DirectIborCapletFloorletDefinition definition = DirectIborCapletFloorletDefinition.of(
+    DirectIborCapletFloorletVolatilityDefinition definition = DirectIborCapletFloorletVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
         GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR));
     ImmutableList<Period> maturities = createNormalMaturities();

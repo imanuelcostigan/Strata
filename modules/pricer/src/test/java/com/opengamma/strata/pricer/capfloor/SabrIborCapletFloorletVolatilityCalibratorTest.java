@@ -28,14 +28,14 @@ import com.opengamma.strata.pricer.option.RawOptionData;
 import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
 
 /**
- * Test {@link SabrTermStructureIborCapletFloorletVolatilityCalibrator}.
+ * Test {@link SabrIborCapletFloorletVolatilityCalibrator}.
  */
 @Test
-public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
+public class SabrIborCapletFloorletVolatilityCalibratorTest
     extends CapletStrippingSetup {
 
-  private static final SabrTermStructureIborCapletFloorletVolatilityCalibrator CALIBRATOR =
-      SabrTermStructureIborCapletFloorletVolatilityCalibrator.DEFAULT;
+  private static final SabrIborCapletFloorletVolatilityCalibrator CALIBRATOR =
+      SabrIborCapletFloorletVolatilityCalibrator.DEFAULT;
   private static final double TOL = 1.0e-3;
 
   public void test_recovery_black() {
@@ -43,8 +43,8 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
     DoubleArray alphaKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
-    SabrTermStructureIborCapletFloorletCalibrationDefinition definition =
-        SabrTermStructureIborCapletFloorletCalibrationDefinition.of(
+    SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7,
             alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
@@ -86,8 +86,8 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
     DoubleArray alphaKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
-    SabrTermStructureIborCapletFloorletCalibrationDefinition definition =
-        SabrTermStructureIborCapletFloorletCalibrationDefinition.of(
+    SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7, 0.05, alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.PCHIP, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan(),
             DoubleArray.of(0.03, 0.7, -0.2, 0.9));
@@ -122,8 +122,8 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
     DoubleArray alphaKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
-    SabrTermStructureIborCapletFloorletCalibrationDefinition definition =
-        SabrTermStructureIborCapletFloorletCalibrationDefinition.of(
+    SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.95,
             alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.LINEAR, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan(),
@@ -158,8 +158,8 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibratorTest
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
 
-    SabrTermStructureIborCapletFloorletCalibrationDefinition definition =
-        SabrTermStructureIborCapletFloorletCalibrationDefinition.of(
+    SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7,
             alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
