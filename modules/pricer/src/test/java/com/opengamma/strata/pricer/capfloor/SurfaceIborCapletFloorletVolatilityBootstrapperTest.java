@@ -41,7 +41,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   private static final double TOL = 1.0e-14;
 
   public void recovery_test_blackSurface() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -77,7 +77,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void test_invalid_data() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -86,7 +86,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_blackSurface_shift() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR,
         ConstantCurve.of("Black shift", 0.02));
     DoubleArray strikes = createBlackStrikes();
@@ -124,7 +124,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_blackCurve() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     for (int i = 0; i < strikes.size(); ++i) {
@@ -153,7 +153,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_flat() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -180,7 +180,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_normal1() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC);
     DoubleArray strikes = createNormalStrikes();
     RawOptionData data = RawOptionData.of(
@@ -200,7 +200,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
             USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
         double priceOrg = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
         double priceCalib = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, resVol).getAmount();
-        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 10d);
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
     }
     assertEquals(res.getChiSquare(), 0d);
@@ -217,7 +217,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_normal2() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC);
     DoubleArray strikes = createNormalEquivStrikes();
     RawOptionData data = RawOptionData.of(
@@ -237,14 +237,14 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
             USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
         double priceOrg = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
         double priceCalib = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, resVol).getAmount();
-        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 100d);
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
     }
     assertEquals(res.getChiSquare(), 0d);
   }
 
   public void recovery_test_normal2_shift() {
-    SurfaceIborCapletFloorletBootstrapDefinition definition = SurfaceIborCapletFloorletBootstrapDefinition.of(
+    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC,
         ConstantCurve.of("Black shift", 0.02));
     DoubleArray strikes = createNormalEquivStrikes();
@@ -265,7 +265,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
             USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
         double priceOrg = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
         double priceCalib = LEG_PRICER_BLACK.presentValue(caps.get(j), RATES_PROVIDER, resVol).getAmount();
-        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 100d);
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
     }
     assertEquals(res.getChiSquare(), 0d);
