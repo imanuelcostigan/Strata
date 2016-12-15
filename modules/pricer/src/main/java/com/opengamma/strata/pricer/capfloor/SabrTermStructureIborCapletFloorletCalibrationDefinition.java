@@ -63,7 +63,7 @@ import com.opengamma.strata.pricer.option.RawOptionData;
  */
 @BeanDefinition
 public final class SabrTermStructureIborCapletFloorletCalibrationDefinition
-    implements IborCapletFloorletDefinition, ImmutableBean, Serializable {
+    implements IborCapletFloorletVolatilityDefinition, ImmutableBean, Serializable {
 
   /**
    * The name of the volatilities.

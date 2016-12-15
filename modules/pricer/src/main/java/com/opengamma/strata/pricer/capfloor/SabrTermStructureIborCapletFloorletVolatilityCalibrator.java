@@ -120,7 +120,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
   //-------------------------------------------------------------------------
   @Override
   public IborCapletFloorletVolatilityCalibrationResult calibrate(
-      IborCapletFloorletDefinition definition,
+      IborCapletFloorletVolatilityDefinition definition,
       ZonedDateTime calibrationDateTime,
       RawOptionData capFloorData,
       RatesProvider ratesProvider) {
@@ -188,7 +188,7 @@ public class SabrTermStructureIborCapletFloorletVolatilityCalibrator
     LeastSquareResultsWithTransform resTransform = new LeastSquareResultsWithTransform(res, transform);
     vols = updateParameters(sabrDefinition, vols, resTransform.getModelParameters());
 
-    return IborCapletFloorletVolatilityCalibrationResult.ofLestSquare(vols, res.getChiSq());
+    return IborCapletFloorletVolatilityCalibrationResult.ofLeastSquare(vols, res.getChiSq());
   }
 
   // price function

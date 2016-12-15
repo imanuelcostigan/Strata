@@ -109,7 +109,7 @@ public class DirectIborCapletFloorletVolatilityCalibrator
   //-------------------------------------------------------------------------
   @Override
   public IborCapletFloorletVolatilityCalibrationResult calibrate(
-      IborCapletFloorletDefinition definition,
+      IborCapletFloorletVolatilityDefinition definition,
       ZonedDateTime calibrationDateTime,
       RawOptionData capFloorData,
       RatesProvider ratesProvider) {
@@ -178,7 +178,7 @@ public class DirectIborCapletFloorletVolatilityCalibrator
         POSITIVE);
     InterpolatedNodalSurface resSurface = InterpolatedNodalSurface.of(
         metadata, capletNodes.getFirst(), capletNodes.getSecond(), res.getFitParameters(), directDefinition.getInterpolator());
-    return IborCapletFloorletVolatilityCalibrationResult.ofLestSquare(volatilitiesFunction.apply(resSurface), res.getChiSq());
+    return IborCapletFloorletVolatilityCalibrationResult.ofLeastSquare(volatilitiesFunction.apply(resSurface), res.getChiSq());
   }
 
   private Function<Surface, IborCapletFloorletVolatilities> createShiftedBlackVolatilitiesFunction(

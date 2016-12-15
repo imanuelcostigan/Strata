@@ -49,7 +49,7 @@ import com.opengamma.strata.pricer.option.RawOptionData;
  */
 @BeanDefinition
 public final class DirectIborCapletFloorletDefinition
-    implements IborCapletFloorletDefinition, ImmutableBean, Serializable {
+    implements IborCapletFloorletVolatilityDefinition, ImmutableBean, Serializable {
 
   /**
    * The name of the volatilities.
