@@ -557,10 +557,12 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     if (parameterCurveNodes != null) {
       ArgChecker.isTrue(parameterCurveNodes.size() == 4, "The size of parameterCurveNodes must be 4");
       ArgChecker.isFalse(parameterCurveNodes.get(0).isEmpty(), "The alpha curve nodes must not be empty");
-      ArgChecker.isFalse(parameterCurveNodes.get(2).isEmpty(), "The rho curve nodes must not be empty");
       ArgChecker.isFalse(parameterCurveNodes.get(3).isEmpty(), "The nu curve nodes must not be empty");
       if (betaCurve == null) {
         ArgChecker.isFalse(parameterCurveNodes.get(1).isEmpty(), "The beta curve nodes must not be empty");
+      }
+      if (rhoCurve == null) {
+        ArgChecker.isFalse(parameterCurveNodes.get(2).isEmpty(), "The rho curve nodes must not be empty");
       }
     }
     ArgChecker.isFalse(betaCurve != null && rhoCurve != null, "Only betaCurve or rhoCurve must be set, not both");
@@ -591,8 +593,8 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
   public ImmutableList<CurveMetadata> createSabrParameterMetadata() {
     CurveMetadata alphaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Alpha", dayCount, SABR_ALPHA);
     CurveMetadata betaMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA);
-    CurveMetadata rhoMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Nu", dayCount, SABR_RHO);
-    CurveMetadata nuMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, SABR_NU);
+    CurveMetadata rhoMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, SABR_RHO);
+    CurveMetadata nuMetadata = Curves.sabrParameterByExpiry(name.getName() + "-Nu", dayCount, SABR_NU);
     return ImmutableList.of(alphaMetadata, betaMetadata, rhoMetadata, nuMetadata);
   }
 

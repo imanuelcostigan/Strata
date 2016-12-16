@@ -132,6 +132,7 @@ public class SabrIborCapletFloorletVolatilityCalibrator
         "definition should be SabrIborCapletFloorletVolatilityCalibrationDefinition");
     SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition =
         (SabrIborCapletFloorletVolatilityCalibrationDefinition) definition;
+    // unpack cap data, create node caps
     IborIndex index = sabrDefinition.getIndex();
     LocalDate calibrationDate = calibrationDateTime.toLocalDate();
     LocalDate baseDate = index.getEffectiveDateOffset().adjust(calibrationDate, referenceData);
@@ -159,7 +160,7 @@ public class SabrIborCapletFloorletVolatilityCalibrator
       startIndex[i + 1] = volList.size();
       ArgChecker.isTrue(startIndex[i + 1] > startIndex[i], "no valid option data for {}", expiries.get(i));
     }
-
+    // create initial caplet vol surface
     List<CurveMetadata> metadataList = sabrDefinition.createSabrParameterMetadata();
     DoubleArray initialValues = sabrDefinition.createFullInitialValues();
     List<Curve> curveList = sabrDefinition.createSabrParameterCurve(metadataList, initialValues);
@@ -172,7 +173,7 @@ public class SabrIborCapletFloorletVolatilityCalibrator
         sabrDefinition.getSabrVolatilityFormula());
     SabrParametersIborCapletFloorletVolatilities vols = SabrParametersIborCapletFloorletVolatilities.of(
         sabrDefinition.getName(), index, calibrationDateTime, sabrParamsInitial);
-
+    // solve least square
     UncoupledParameterTransforms transform = new UncoupledParameterTransforms(
         initialValues, sabrDefinition.createFullTransform(TRANSFORMS), new BitSet());
     Function<DoubleArray, DoubleArray> valueFunction = createPriceFunction(
