@@ -59,6 +59,9 @@ import com.opengamma.strata.pricer.option.RawOptionData;
  * This definition is used with {@link SabrTermStructureIborCapletFloorletVolatilityCalibrator}. 
  * The term structure of SABR model parameters is calibrated to cap volatilities. 
  * The SABR parameters are represented by {@code NodalCurve} and the node positions on the curves are flexible.
+ * <p>
+ * Either rho or beta must be fixed. 
+ * Then the calibration is computed to the other three SABR parameter curves.
  * The resulting volatilities object will be {@link SabrParametersIborCapletFloorletVolatilities}.
  */
 @BeanDefinition
@@ -84,17 +87,24 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * The beta (elasticity) curve.
    * <p>
    * This represents the beta parameter of SABR model.
-   * The x value of the curve is the expiry.
    * <p>
    * The beta will be treated as one of the calibration parameters if this field is not specified.
    */
   @PropertyDefinition(get = "optional")
   private final Curve betaCurve;
   /**
+   * The rho (correlation) curve.
+   * <p>
+   * This represents the rho parameter of SABR model.
+   * <p>
+   * The rho will be treated as one of the calibration parameters if this field is not specified.
+   */
+  @PropertyDefinition(get = "optional")
+  private final Curve rhoCurve;
+  /**
    * The shift curve.
    * <p>
    * This represents the shift parameter of shifted SABR model.
-   * The x value of the curve is the expiry.
    * <p>
    * The shift is set to be zero if this field is not specified.
    */
@@ -111,6 +121,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    */
   @PropertyDefinition(validate = "notNull")
   private final ImmutableList<DoubleArray> parameterCurveNodes;
+  /**
+   * The initial parameter values used in calibration. 
+   * <p>
+   * Default values will be used if not specified. 
+   * The size of this field must be 4, regardless of fixed or not, ordered as alpha, beta, rho and nu. 
+   */
+  @PropertyDefinition(validate = "notNull")
+  private final DoubleArray initialParameters;
   /**
    * The interpolator for the SABR parameters.
    */
@@ -135,15 +153,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    */
   @PropertyDefinition(validate = "notNull")
   private final SabrVolatilityFormula sabrVolatilityFormula;
-  /**
-   * The initial parameter values used in calibration. 
-   * <p>
-   * Default values will be used if not specified. 
-   * The size of this field must be 4, ordered as alpha, beta, rho and nu. 
-   * The second element corresponding to beta will be ignored if beta is fixed, i.e., {@code betaCurve} is present.
-   */
-  @PropertyDefinition(get = "optional")
-  private final DoubleArray initialParameters;
 
   //-------------------------------------------------------------------------
   /**
@@ -166,7 +175,7 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * @param sabrVolatilityFormula  the SABR formula
    * @return the instance
    */
-  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedBeta(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -180,21 +189,20 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       CurveExtrapolator extrapolatorRight,
       SabrVolatilityFormula sabrVolatilityFormula) {
 
-    ConstantCurve betaCurve = ConstantCurve.of(
-        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
-    ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
-    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
+    DoubleArray initialValues = DoubleArray.of(0.1, beta, -0.2, 0.5);
+    return ofFixedBeta(
         name,
         index,
         dayCount,
-        betaCurve,
-        shiftCurve,
-        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        shift,
+        alphaCurveNodes,
+        rhoCurveNodes,
+        nuCurveNodes,
+        initialValues,
         interpolator,
         extrapolatorLeft,
         extrapolatorRight,
-        sabrVolatilityFormula,
-        null);
+        sabrVolatilityFormula);
   }
 
   /**
@@ -215,7 +223,7 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * @param sabrVolatilityFormula  the SABR formula
    * @return the instance
    */
-  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedBeta(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
@@ -228,67 +236,19 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       CurveExtrapolator extrapolatorRight,
       SabrVolatilityFormula sabrVolatilityFormula) {
 
-    ConstantCurve betaCurve = ConstantCurve.of(
-        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
-    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
-    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
+    DoubleArray initialValues = DoubleArray.of(0.1, beta, -0.2, 0.5);
+    return ofFixedBeta(
         name,
         index,
         dayCount,
-        betaCurve,
-        shiftCurve,
-        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        alphaCurveNodes,
+        rhoCurveNodes,
+        nuCurveNodes,
+        initialValues,
         interpolator,
         extrapolatorLeft,
         extrapolatorRight,
-        sabrVolatilityFormula,
-        null);
-  }
-
-  /**
-   * Obtains an instance with zero shift and initial values.
-   * 
-   * @param name  the name of volatilities
-   * @param index  the Ibor index
-   * @param dayCount  the day count
-   * @param alphaCurveNodes  the alpha curve nodes
-   * @param betaCurveNodes  the beta curve nodes
-   * @param rhoCurveNodes  the rho curve nodes
-   * @param nuCurveNodes  the nu curve nodes
-   * @param interpolator  the interpolator
-   * @param extrapolatorLeft  the left extrapolator
-   * @param extrapolatorRight  the right extrapolator
-   * @param sabrVolatilityFormula  the SABR formula
-   * @param initialParameters  the initial parameters
-   * @return the instance
-   */
-  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
-      IborCapletFloorletVolatilitiesName name,
-      IborIndex index,
-      DayCount dayCount,
-      DoubleArray alphaCurveNodes,
-      DoubleArray betaCurveNodes,
-      DoubleArray rhoCurveNodes,
-      DoubleArray nuCurveNodes,
-      CurveInterpolator interpolator,
-      CurveExtrapolator extrapolatorLeft,
-      CurveExtrapolator extrapolatorRight,
-      SabrVolatilityFormula sabrVolatilityFormula,
-      DoubleArray initialParameters) {
-
-    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
-    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
-        name,
-        index,
-        dayCount,
-        null,
-        shiftCurve,
-        ImmutableList.of(alphaCurveNodes, betaCurveNodes, rhoCurveNodes, nuCurveNodes),
-        interpolator,
-        extrapolatorLeft,
-        extrapolatorRight,
-        sabrVolatilityFormula,
-        initialParameters);
+        sabrVolatilityFormula);
   }
 
   /**
@@ -300,42 +260,47 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * @param name  the name of volatilities
    * @param index  the Ibor index
    * @param dayCount  the day count
-   * @param beta  the beta
    * @param shift  the shift
    * @param alphaCurveNodes  the alpha curve nodes
    * @param rhoCurveNodes  the rho curve nodes
    * @param nuCurveNodes  the nu curve nodes
+   * @param initialParameters  the initial parameters
    * @param interpolator  the interpolator
    * @param extrapolatorLeft  the left extrapolator
    * @param extrapolatorRight  the right extrapolator
    * @param sabrVolatilityFormula  the SABR formula
-   * @param initialParameters  the initial parameters
    * @return the instance
    */
-  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedBeta(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
-      double beta,
       double shift,
       DoubleArray alphaCurveNodes,
       DoubleArray rhoCurveNodes,
       DoubleArray nuCurveNodes,
+      DoubleArray initialParameters,
       CurveInterpolator interpolator,
       CurveExtrapolator extrapolatorLeft,
       CurveExtrapolator extrapolatorRight,
-      SabrVolatilityFormula sabrVolatilityFormula,
-      DoubleArray initialParameters) {
+      SabrVolatilityFormula sabrVolatilityFormula) {
 
     ConstantCurve betaCurve = ConstantCurve.of(
-        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), initialParameters.get(1));
     ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
     return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
-        name, index, dayCount, betaCurve, shiftCurve,
+        name,
+        index,
+        dayCount,
+        betaCurve,
+        null,
+        shiftCurve,
         ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
-        interpolator, extrapolatorLeft,
-        extrapolatorRight, sabrVolatilityFormula,
-        initialParameters);
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
   }
 
   /**
@@ -347,40 +312,244 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * @param name  the name of volatilities
    * @param index  the Ibor index
    * @param dayCount  the day count
-   * @param beta  the beta
    * @param alphaCurveNodes  the alpha curve nodes
    * @param rhoCurveNodes  the rho curve nodes
+   * @param nuCurveNodes  the nu curve nodes
+   * @param initialParameters  the initial parameters
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedBeta(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      DoubleArray alphaCurveNodes,
+      DoubleArray rhoCurveNodes,
+      DoubleArray nuCurveNodes,
+      DoubleArray initialParameters,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    ConstantCurve betaCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), initialParameters.get(1));
+    Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
+        name,
+        index,
+        dayCount,
+        betaCurve,
+        null,
+        shiftCurve,
+        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with fixed rho and nonzero shift.
+   * <p>
+   * The rho and shift are constant in time.
+   * The default initial values will be used in the calibration.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param rho  the rho
+   * @param shift  the shift
+   * @param alphaCurveNodes  the alpha curve nodes
+   * @param betaCurveNodes  the beta curve nodes
    * @param nuCurveNodes  the nu curve nodes
    * @param interpolator  the interpolator
    * @param extrapolatorLeft  the left extrapolator
    * @param extrapolatorRight  the right extrapolator
    * @param sabrVolatilityFormula  the SABR formula
-   * @param initialParameters  the initial parameters
    * @return the instance
    */
-  public static SabrIborCapletFloorletVolatilityCalibrationDefinition of(
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedRho(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
       DayCount dayCount,
-      double beta,
+      double rho,
+      double shift,
       DoubleArray alphaCurveNodes,
-      DoubleArray rhoCurveNodes,
+      DoubleArray betaCurveNodes,
       DoubleArray nuCurveNodes,
       CurveInterpolator interpolator,
       CurveExtrapolator extrapolatorLeft,
       CurveExtrapolator extrapolatorRight,
-      SabrVolatilityFormula sabrVolatilityFormula,
-      DoubleArray initialParameters) {
+      SabrVolatilityFormula sabrVolatilityFormula) {
 
-    ConstantCurve betaCurve = ConstantCurve.of(
-        Curves.sabrParameterByExpiry(name.getName() + "-Beta", dayCount, SABR_BETA), beta);
+    DoubleArray initialParameters = DoubleArray.of(0.1, 0.7, rho, 0.5);
+    return ofFixedRho(
+        name,
+        index,
+        dayCount,
+        shift,
+        alphaCurveNodes,
+        betaCurveNodes,
+        nuCurveNodes,
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with fixed rho and zero shift.
+   * <p>
+   * The rho is constant in time.
+   * The default initial values will be used in the calibration.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param rho  the rho
+   * @param alphaCurveNodes  the alpha curve nodes
+   * @param betaCurveNodes  the beta curve nodes
+   * @param nuCurveNodes  the nu curve nodes
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedRho(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double rho,
+      DoubleArray alphaCurveNodes,
+      DoubleArray betaCurveNodes,
+      DoubleArray nuCurveNodes,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    DoubleArray initialParameters = DoubleArray.of(0.1, 0.7, rho, 0.5);
+    return ofFixedRho(
+        name,
+        index,
+        dayCount,
+        alphaCurveNodes,
+        betaCurveNodes,
+        nuCurveNodes,
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with fixed rho, nonzero shift and initial values.
+   * <p>
+   * The rho and shift are constant in time.
+   * The default initial values will be used in the calibration.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param shift  the shift
+   * @param alphaCurveNodes  the alpha curve nodes
+   * @param betaCurveNodes  the beta curve nodes
+   * @param nuCurveNodes  the nu curve nodes
+   * @param initialParameters  the initial parameters
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedRho(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      double shift,
+      DoubleArray alphaCurveNodes,
+      DoubleArray betaCurveNodes,
+      DoubleArray nuCurveNodes,
+      DoubleArray initialParameters,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    ConstantCurve rhoCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, SABR_RHO), initialParameters.get(2));
+    ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
+    return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
+        name,
+        index,
+        dayCount,
+        null,
+        rhoCurve,
+        shiftCurve,
+        ImmutableList.of(alphaCurveNodes, betaCurveNodes, DoubleArray.of(), nuCurveNodes),
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
+  }
+
+  /**
+   * Obtains an instance with fixed rho, zero shift and initial values.
+   * <p>
+   * The rho is constant in time.
+   * The default initial values will be used in the calibration.
+   * 
+   * @param name  the name of volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count
+   * @param alphaCurveNodes  the alpha curve nodes
+   * @param betaCurveNodes  the beta curve nodes
+   * @param nuCurveNodes  the nu curve nodes
+   * @param initialParameters  the initial parameters
+   * @param interpolator  the interpolator
+   * @param extrapolatorLeft  the left extrapolator
+   * @param extrapolatorRight  the right extrapolator
+   * @param sabrVolatilityFormula  the SABR formula
+   * @return the instance
+   */
+  public static SabrIborCapletFloorletVolatilityCalibrationDefinition ofFixedRho(
+      IborCapletFloorletVolatilitiesName name,
+      IborIndex index,
+      DayCount dayCount,
+      DoubleArray alphaCurveNodes,
+      DoubleArray betaCurveNodes,
+      DoubleArray nuCurveNodes,
+      DoubleArray initialParameters,
+      CurveInterpolator interpolator,
+      CurveExtrapolator extrapolatorLeft,
+      CurveExtrapolator extrapolatorRight,
+      SabrVolatilityFormula sabrVolatilityFormula) {
+
+    ConstantCurve rhoCurve = ConstantCurve.of(
+        Curves.sabrParameterByExpiry(name.getName() + "-Rho", dayCount, SABR_RHO), initialParameters.get(2));
     Curve shiftCurve = ConstantCurve.of("Zero shift", 0d);
     return new SabrIborCapletFloorletVolatilityCalibrationDefinition(
-        name, index, dayCount, betaCurve, shiftCurve,
-        ImmutableList.of(alphaCurveNodes, DoubleArray.of(), rhoCurveNodes, nuCurveNodes),
-        interpolator, extrapolatorLeft,
-        extrapolatorRight, sabrVolatilityFormula,
-        initialParameters);
+        name,
+        index,
+        dayCount,
+        null,
+        rhoCurve,
+        shiftCurve,
+        ImmutableList.of(alphaCurveNodes, betaCurveNodes, DoubleArray.of(), nuCurveNodes),
+        initialParameters,
+        interpolator,
+        extrapolatorLeft,
+        extrapolatorRight,
+        sabrVolatilityFormula);
   }
 
   @ImmutableValidator
@@ -394,6 +563,8 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
         ArgChecker.isFalse(parameterCurveNodes.get(1).isEmpty(), "The beta curve nodes must not be empty");
       }
     }
+    ArgChecker.isFalse(betaCurve != null && rhoCurve != null, "Only betaCurve or rhoCurve must be set, not both");
+    ArgChecker.isFalse(betaCurve == null && rhoCurve == null, "Either betaCurve or rhoCurve must be set");
   }
 
   //-------------------------------------------------------------------------
@@ -440,8 +611,8 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     List<Curve> res = new ArrayList<>();
     int offset = 0;
     for (int i = 0; i < 4; ++i) {
-      if (i == 1 && getBetaCurve().isPresent()) {
-        res.add(getBetaCurve().get());  // beta fixed
+      if (isFixed(i)) {
+        res.add(getBetaCurve().orElse(rhoCurve));
       } else {
         int nNodes = parameterCurveNodes.get(i).size();
         int currentOffset = offset;
@@ -479,8 +650,8 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     List<ParameterLimitsTransform> fullTransformList = new ArrayList<>();
     int length = 0;
     for (int i = 0; i < 4; ++i) {
-      if (i == 1 && getBetaCurve().isPresent()) {
-        // beta fixed
+      if (isFixed(i)) {
+        // fixed parameter
       } else {
         int nNodes = parameterCurveNodes.get(i).size();
         fullTransformList.addAll(Collections.nCopies(nNodes, transform[i]));
@@ -498,18 +669,20 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * @return the initial values
    */
   public DoubleArray createFullInitialValues() {
-    double[] initialValues =
-        getInitialParameters().isPresent() ? getInitialParameters().get().toArray() : new double[] {0.1, 0.7, -0.2, 0.5};
     List<Double> fullInitialValues = new ArrayList<>();
     for (int i = 0; i < 4; ++i) {
-      if (i == 1 && getBetaCurve().isPresent()) {
-        // beta fixed
+      if (isFixed(i)) {
+        // fixed parameter
       } else {
         int nNodes = parameterCurveNodes.get(i).size();
-        fullInitialValues.addAll(Collections.nCopies(nNodes, initialValues[i]));
+        fullInitialValues.addAll(Collections.nCopies(nNodes, initialParameters.get(i)));
       }
     }
     return DoubleArray.copyOf(fullInitialValues);
+  }
+
+  private boolean isFixed(int index) {
+    return (index == 1 && getBetaCurve().isPresent()) || (index == 2 && getRhoCurve().isPresent());
   }
 
   //------------------------- AUTOGENERATED START -------------------------
@@ -544,18 +717,20 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       IborIndex index,
       DayCount dayCount,
       Curve betaCurve,
+      Curve rhoCurve,
       Curve shiftCurve,
       List<DoubleArray> parameterCurveNodes,
+      DoubleArray initialParameters,
       CurveInterpolator interpolator,
       CurveExtrapolator extrapolatorLeft,
       CurveExtrapolator extrapolatorRight,
-      SabrVolatilityFormula sabrVolatilityFormula,
-      DoubleArray initialParameters) {
+      SabrVolatilityFormula sabrVolatilityFormula) {
     JodaBeanUtils.notNull(name, "name");
     JodaBeanUtils.notNull(index, "index");
     JodaBeanUtils.notNull(dayCount, "dayCount");
     JodaBeanUtils.notNull(shiftCurve, "shiftCurve");
     JodaBeanUtils.notNull(parameterCurveNodes, "parameterCurveNodes");
+    JodaBeanUtils.notNull(initialParameters, "initialParameters");
     JodaBeanUtils.notNull(interpolator, "interpolator");
     JodaBeanUtils.notNull(extrapolatorLeft, "extrapolatorLeft");
     JodaBeanUtils.notNull(extrapolatorRight, "extrapolatorRight");
@@ -564,13 +739,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     this.index = index;
     this.dayCount = dayCount;
     this.betaCurve = betaCurve;
+    this.rhoCurve = rhoCurve;
     this.shiftCurve = shiftCurve;
     this.parameterCurveNodes = ImmutableList.copyOf(parameterCurveNodes);
+    this.initialParameters = initialParameters;
     this.interpolator = interpolator;
     this.extrapolatorLeft = extrapolatorLeft;
     this.extrapolatorRight = extrapolatorRight;
     this.sabrVolatilityFormula = sabrVolatilityFormula;
-    this.initialParameters = initialParameters;
     validate();
   }
 
@@ -624,7 +800,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    * Gets the beta (elasticity) curve.
    * <p>
    * This represents the beta parameter of SABR model.
-   * The x value of the curve is the expiry.
    * <p>
    * The beta will be treated as one of the calibration parameters if this field is not specified.
    * @return the optional value of the property, not null
@@ -635,10 +810,22 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
+   * Gets the rho (correlation) curve.
+   * <p>
+   * This represents the rho parameter of SABR model.
+   * <p>
+   * The rho will be treated as one of the calibration parameters if this field is not specified.
+   * @return the optional value of the property, not null
+   */
+  public Optional<Curve> getRhoCurve() {
+    return Optional.ofNullable(rhoCurve);
+  }
+
+  //-----------------------------------------------------------------------
+  /**
    * Gets the shift curve.
    * <p>
    * This represents the shift parameter of shifted SABR model.
-   * The x value of the curve is the expiry.
    * <p>
    * The shift is set to be zero if this field is not specified.
    * @return the value of the property, not null
@@ -660,6 +847,18 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
    */
   public ImmutableList<DoubleArray> getParameterCurveNodes() {
     return parameterCurveNodes;
+  }
+
+  //-----------------------------------------------------------------------
+  /**
+   * Gets the initial parameter values used in calibration.
+   * <p>
+   * Default values will be used if not specified.
+   * The size of this field must be 4, regardless of fixed or not, ordered as alpha, beta, rho and nu.
+   * @return the value of the property, not null
+   */
+  public DoubleArray getInitialParameters() {
+    return initialParameters;
   }
 
   //-----------------------------------------------------------------------
@@ -704,19 +903,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the initial parameter values used in calibration.
-   * <p>
-   * Default values will be used if not specified.
-   * The size of this field must be 4, ordered as alpha, beta, rho and nu.
-   * The second element corresponding to beta will be ignored if beta is fixed, i.e., {@code betaCurve} is present.
-   * @return the optional value of the property, not null
-   */
-  public Optional<DoubleArray> getInitialParameters() {
-    return Optional.ofNullable(initialParameters);
-  }
-
-  //-----------------------------------------------------------------------
-  /**
    * Returns a builder that allows this bean to be mutated.
    * @return the mutable builder, not null
    */
@@ -735,13 +921,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           JodaBeanUtils.equal(index, other.index) &&
           JodaBeanUtils.equal(dayCount, other.dayCount) &&
           JodaBeanUtils.equal(betaCurve, other.betaCurve) &&
+          JodaBeanUtils.equal(rhoCurve, other.rhoCurve) &&
           JodaBeanUtils.equal(shiftCurve, other.shiftCurve) &&
           JodaBeanUtils.equal(parameterCurveNodes, other.parameterCurveNodes) &&
+          JodaBeanUtils.equal(initialParameters, other.initialParameters) &&
           JodaBeanUtils.equal(interpolator, other.interpolator) &&
           JodaBeanUtils.equal(extrapolatorLeft, other.extrapolatorLeft) &&
           JodaBeanUtils.equal(extrapolatorRight, other.extrapolatorRight) &&
-          JodaBeanUtils.equal(sabrVolatilityFormula, other.sabrVolatilityFormula) &&
-          JodaBeanUtils.equal(initialParameters, other.initialParameters);
+          JodaBeanUtils.equal(sabrVolatilityFormula, other.sabrVolatilityFormula);
     }
     return false;
   }
@@ -753,31 +940,33 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     hash = hash * 31 + JodaBeanUtils.hashCode(index);
     hash = hash * 31 + JodaBeanUtils.hashCode(dayCount);
     hash = hash * 31 + JodaBeanUtils.hashCode(betaCurve);
+    hash = hash * 31 + JodaBeanUtils.hashCode(rhoCurve);
     hash = hash * 31 + JodaBeanUtils.hashCode(shiftCurve);
     hash = hash * 31 + JodaBeanUtils.hashCode(parameterCurveNodes);
+    hash = hash * 31 + JodaBeanUtils.hashCode(initialParameters);
     hash = hash * 31 + JodaBeanUtils.hashCode(interpolator);
     hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorLeft);
     hash = hash * 31 + JodaBeanUtils.hashCode(extrapolatorRight);
     hash = hash * 31 + JodaBeanUtils.hashCode(sabrVolatilityFormula);
-    hash = hash * 31 + JodaBeanUtils.hashCode(initialParameters);
     return hash;
   }
 
   @Override
   public String toString() {
-    StringBuilder buf = new StringBuilder(384);
+    StringBuilder buf = new StringBuilder(416);
     buf.append("SabrIborCapletFloorletVolatilityCalibrationDefinition{");
     buf.append("name").append('=').append(name).append(',').append(' ');
     buf.append("index").append('=').append(index).append(',').append(' ');
     buf.append("dayCount").append('=').append(dayCount).append(',').append(' ');
     buf.append("betaCurve").append('=').append(betaCurve).append(',').append(' ');
+    buf.append("rhoCurve").append('=').append(rhoCurve).append(',').append(' ');
     buf.append("shiftCurve").append('=').append(shiftCurve).append(',').append(' ');
     buf.append("parameterCurveNodes").append('=').append(parameterCurveNodes).append(',').append(' ');
+    buf.append("initialParameters").append('=').append(initialParameters).append(',').append(' ');
     buf.append("interpolator").append('=').append(interpolator).append(',').append(' ');
     buf.append("extrapolatorLeft").append('=').append(extrapolatorLeft).append(',').append(' ');
     buf.append("extrapolatorRight").append('=').append(extrapolatorRight).append(',').append(' ');
-    buf.append("sabrVolatilityFormula").append('=').append(sabrVolatilityFormula).append(',').append(' ');
-    buf.append("initialParameters").append('=').append(JodaBeanUtils.toString(initialParameters));
+    buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
     buf.append('}');
     return buf.toString();
   }
@@ -813,6 +1002,11 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     private final MetaProperty<Curve> betaCurve = DirectMetaProperty.ofImmutable(
         this, "betaCurve", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, Curve.class);
     /**
+     * The meta-property for the {@code rhoCurve} property.
+     */
+    private final MetaProperty<Curve> rhoCurve = DirectMetaProperty.ofImmutable(
+        this, "rhoCurve", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, Curve.class);
+    /**
      * The meta-property for the {@code shiftCurve} property.
      */
     private final MetaProperty<Curve> shiftCurve = DirectMetaProperty.ofImmutable(
@@ -823,6 +1017,11 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     @SuppressWarnings({"unchecked", "rawtypes" })
     private final MetaProperty<ImmutableList<DoubleArray>> parameterCurveNodes = DirectMetaProperty.ofImmutable(
         this, "parameterCurveNodes", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, (Class) ImmutableList.class);
+    /**
+     * The meta-property for the {@code initialParameters} property.
+     */
+    private final MetaProperty<DoubleArray> initialParameters = DirectMetaProperty.ofImmutable(
+        this, "initialParameters", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, DoubleArray.class);
     /**
      * The meta-property for the {@code interpolator} property.
      */
@@ -844,11 +1043,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     private final MetaProperty<SabrVolatilityFormula> sabrVolatilityFormula = DirectMetaProperty.ofImmutable(
         this, "sabrVolatilityFormula", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, SabrVolatilityFormula.class);
     /**
-     * The meta-property for the {@code initialParameters} property.
-     */
-    private final MetaProperty<DoubleArray> initialParameters = DirectMetaProperty.ofImmutable(
-        this, "initialParameters", SabrIborCapletFloorletVolatilityCalibrationDefinition.class, DoubleArray.class);
-    /**
      * The meta-properties.
      */
     private final Map<String, MetaProperty<?>> metaPropertyMap$ = new DirectMetaPropertyMap(
@@ -857,13 +1051,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
         "index",
         "dayCount",
         "betaCurve",
+        "rhoCurve",
         "shiftCurve",
         "parameterCurveNodes",
+        "initialParameters",
         "interpolator",
         "extrapolatorLeft",
         "extrapolatorRight",
-        "sabrVolatilityFormula",
-        "initialParameters");
+        "sabrVolatilityFormula");
 
     /**
      * Restricted constructor.
@@ -882,10 +1077,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return dayCount;
         case 1607020767:  // betaCurve
           return betaCurve;
+        case -2128671882:  // rhoCurve
+          return rhoCurve;
         case 1908090253:  // shiftCurve
           return shiftCurve;
         case -1431162997:  // parameterCurveNodes
           return parameterCurveNodes;
+        case 1451864142:  // initialParameters
+          return initialParameters;
         case 2096253127:  // interpolator
           return interpolator;
         case 1271703994:  // extrapolatorLeft
@@ -894,8 +1093,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
-        case 1451864142:  // initialParameters
-          return initialParameters;
       }
       return super.metaPropertyGet(propertyName);
     }
@@ -949,6 +1146,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     }
 
     /**
+     * The meta-property for the {@code rhoCurve} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<Curve> rhoCurve() {
+      return rhoCurve;
+    }
+
+    /**
      * The meta-property for the {@code shiftCurve} property.
      * @return the meta-property, not null
      */
@@ -962,6 +1167,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
      */
     public MetaProperty<ImmutableList<DoubleArray>> parameterCurveNodes() {
       return parameterCurveNodes;
+    }
+
+    /**
+     * The meta-property for the {@code initialParameters} property.
+     * @return the meta-property, not null
+     */
+    public MetaProperty<DoubleArray> initialParameters() {
+      return initialParameters;
     }
 
     /**
@@ -996,14 +1209,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       return sabrVolatilityFormula;
     }
 
-    /**
-     * The meta-property for the {@code initialParameters} property.
-     * @return the meta-property, not null
-     */
-    public MetaProperty<DoubleArray> initialParameters() {
-      return initialParameters;
-    }
-
     //-----------------------------------------------------------------------
     @Override
     protected Object propertyGet(Bean bean, String propertyName, boolean quiet) {
@@ -1016,10 +1221,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getDayCount();
         case 1607020767:  // betaCurve
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).betaCurve;
+        case -2128671882:  // rhoCurve
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).rhoCurve;
         case 1908090253:  // shiftCurve
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getShiftCurve();
         case -1431162997:  // parameterCurveNodes
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getParameterCurveNodes();
+        case 1451864142:  // initialParameters
+          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getInitialParameters();
         case 2096253127:  // interpolator
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getInterpolator();
         case 1271703994:  // extrapolatorLeft
@@ -1028,8 +1237,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getExtrapolatorRight();
         case -683564541:  // sabrVolatilityFormula
           return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).getSabrVolatilityFormula();
-        case 1451864142:  // initialParameters
-          return ((SabrIborCapletFloorletVolatilityCalibrationDefinition) bean).initialParameters;
       }
       return super.propertyGet(bean, propertyName, quiet);
     }
@@ -1055,13 +1262,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     private IborIndex index;
     private DayCount dayCount;
     private Curve betaCurve;
+    private Curve rhoCurve;
     private Curve shiftCurve;
     private List<DoubleArray> parameterCurveNodes = ImmutableList.of();
+    private DoubleArray initialParameters;
     private CurveInterpolator interpolator;
     private CurveExtrapolator extrapolatorLeft;
     private CurveExtrapolator extrapolatorRight;
     private SabrVolatilityFormula sabrVolatilityFormula;
-    private DoubleArray initialParameters;
 
     /**
      * Restricted constructor.
@@ -1078,13 +1286,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       this.index = beanToCopy.getIndex();
       this.dayCount = beanToCopy.getDayCount();
       this.betaCurve = beanToCopy.betaCurve;
+      this.rhoCurve = beanToCopy.rhoCurve;
       this.shiftCurve = beanToCopy.getShiftCurve();
       this.parameterCurveNodes = beanToCopy.getParameterCurveNodes();
+      this.initialParameters = beanToCopy.getInitialParameters();
       this.interpolator = beanToCopy.getInterpolator();
       this.extrapolatorLeft = beanToCopy.getExtrapolatorLeft();
       this.extrapolatorRight = beanToCopy.getExtrapolatorRight();
       this.sabrVolatilityFormula = beanToCopy.getSabrVolatilityFormula();
-      this.initialParameters = beanToCopy.initialParameters;
     }
 
     //-----------------------------------------------------------------------
@@ -1099,10 +1308,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return dayCount;
         case 1607020767:  // betaCurve
           return betaCurve;
+        case -2128671882:  // rhoCurve
+          return rhoCurve;
         case 1908090253:  // shiftCurve
           return shiftCurve;
         case -1431162997:  // parameterCurveNodes
           return parameterCurveNodes;
+        case 1451864142:  // initialParameters
+          return initialParameters;
         case 2096253127:  // interpolator
           return interpolator;
         case 1271703994:  // extrapolatorLeft
@@ -1111,8 +1324,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           return extrapolatorRight;
         case -683564541:  // sabrVolatilityFormula
           return sabrVolatilityFormula;
-        case 1451864142:  // initialParameters
-          return initialParameters;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
       }
@@ -1134,11 +1345,17 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
         case 1607020767:  // betaCurve
           this.betaCurve = (Curve) newValue;
           break;
+        case -2128671882:  // rhoCurve
+          this.rhoCurve = (Curve) newValue;
+          break;
         case 1908090253:  // shiftCurve
           this.shiftCurve = (Curve) newValue;
           break;
         case -1431162997:  // parameterCurveNodes
           this.parameterCurveNodes = (List<DoubleArray>) newValue;
+          break;
+        case 1451864142:  // initialParameters
+          this.initialParameters = (DoubleArray) newValue;
           break;
         case 2096253127:  // interpolator
           this.interpolator = (CurveInterpolator) newValue;
@@ -1151,9 +1368,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           break;
         case -683564541:  // sabrVolatilityFormula
           this.sabrVolatilityFormula = (SabrVolatilityFormula) newValue;
-          break;
-        case 1451864142:  // initialParameters
-          this.initialParameters = (DoubleArray) newValue;
           break;
         default:
           throw new NoSuchElementException("Unknown property: " + propertyName);
@@ -1192,13 +1406,14 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
           index,
           dayCount,
           betaCurve,
+          rhoCurve,
           shiftCurve,
           parameterCurveNodes,
+          initialParameters,
           interpolator,
           extrapolatorLeft,
           extrapolatorRight,
-          sabrVolatilityFormula,
-          initialParameters);
+          sabrVolatilityFormula);
     }
 
     //-----------------------------------------------------------------------
@@ -1239,7 +1454,6 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
      * Sets the beta (elasticity) curve.
      * <p>
      * This represents the beta parameter of SABR model.
-     * The x value of the curve is the expiry.
      * <p>
      * The beta will be treated as one of the calibration parameters if this field is not specified.
      * @param betaCurve  the new value
@@ -1251,10 +1465,23 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     }
 
     /**
+     * Sets the rho (correlation) curve.
+     * <p>
+     * This represents the rho parameter of SABR model.
+     * <p>
+     * The rho will be treated as one of the calibration parameters if this field is not specified.
+     * @param rhoCurve  the new value
+     * @return this, for chaining, not null
+     */
+    public Builder rhoCurve(Curve rhoCurve) {
+      this.rhoCurve = rhoCurve;
+      return this;
+    }
+
+    /**
      * Sets the shift curve.
      * <p>
      * This represents the shift parameter of shifted SABR model.
-     * The x value of the curve is the expiry.
      * <p>
      * The shift is set to be zero if this field is not specified.
      * @param shiftCurve  the new value, not null
@@ -1291,6 +1518,20 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
      */
     public Builder parameterCurveNodes(DoubleArray... parameterCurveNodes) {
       return parameterCurveNodes(ImmutableList.copyOf(parameterCurveNodes));
+    }
+
+    /**
+     * Sets the initial parameter values used in calibration.
+     * <p>
+     * Default values will be used if not specified.
+     * The size of this field must be 4, regardless of fixed or not, ordered as alpha, beta, rho and nu.
+     * @param initialParameters  the new value, not null
+     * @return this, for chaining, not null
+     */
+    public Builder initialParameters(DoubleArray initialParameters) {
+      JodaBeanUtils.notNull(initialParameters, "initialParameters");
+      this.initialParameters = initialParameters;
+      return this;
     }
 
     /**
@@ -1341,36 +1582,23 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
       return this;
     }
 
-    /**
-     * Sets the initial parameter values used in calibration.
-     * <p>
-     * Default values will be used if not specified.
-     * The size of this field must be 4, ordered as alpha, beta, rho and nu.
-     * The second element corresponding to beta will be ignored if beta is fixed, i.e., {@code betaCurve} is present.
-     * @param initialParameters  the new value
-     * @return this, for chaining, not null
-     */
-    public Builder initialParameters(DoubleArray initialParameters) {
-      this.initialParameters = initialParameters;
-      return this;
-    }
-
     //-----------------------------------------------------------------------
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(384);
+      StringBuilder buf = new StringBuilder(416);
       buf.append("SabrIborCapletFloorletVolatilityCalibrationDefinition.Builder{");
       buf.append("name").append('=').append(JodaBeanUtils.toString(name)).append(',').append(' ');
       buf.append("index").append('=').append(JodaBeanUtils.toString(index)).append(',').append(' ');
       buf.append("dayCount").append('=').append(JodaBeanUtils.toString(dayCount)).append(',').append(' ');
       buf.append("betaCurve").append('=').append(JodaBeanUtils.toString(betaCurve)).append(',').append(' ');
+      buf.append("rhoCurve").append('=').append(JodaBeanUtils.toString(rhoCurve)).append(',').append(' ');
       buf.append("shiftCurve").append('=').append(JodaBeanUtils.toString(shiftCurve)).append(',').append(' ');
       buf.append("parameterCurveNodes").append('=').append(JodaBeanUtils.toString(parameterCurveNodes)).append(',').append(' ');
+      buf.append("initialParameters").append('=').append(JodaBeanUtils.toString(initialParameters)).append(',').append(' ');
       buf.append("interpolator").append('=').append(JodaBeanUtils.toString(interpolator)).append(',').append(' ');
       buf.append("extrapolatorLeft").append('=').append(JodaBeanUtils.toString(extrapolatorLeft)).append(',').append(' ');
       buf.append("extrapolatorRight").append('=').append(JodaBeanUtils.toString(extrapolatorRight)).append(',').append(' ');
-      buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula)).append(',').append(' ');
-      buf.append("initialParameters").append('=').append(JodaBeanUtils.toString(initialParameters));
+      buf.append("sabrVolatilityFormula").append('=').append(JodaBeanUtils.toString(sabrVolatilityFormula));
       buf.append('}');
       return buf.toString();
     }

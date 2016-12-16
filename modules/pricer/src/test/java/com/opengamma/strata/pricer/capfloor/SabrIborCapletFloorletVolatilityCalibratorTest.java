@@ -44,7 +44,7 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
-        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.ofFixedBeta(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7,
             alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,
@@ -87,10 +87,10 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
-        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
-            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7, 0.05, alphaKnots, rhoKnots, nuKnots,
-            CurveInterpolators.PCHIP, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan(),
-            DoubleArray.of(0.03, 0.7, -0.2, 0.9));
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.ofFixedBeta(
+            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.05, alphaKnots, rhoKnots, nuKnots,
+            DoubleArray.of(0.03, 0.7, -0.2, 0.9),
+            CurveInterpolators.PCHIP, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan());
     ImmutableList<Period> maturities = createBlackMaturities();
     DoubleArray strikes = createBlackStrikes();
     DoubleMatrix volData =createFullBlackDataMatrix();
@@ -123,11 +123,11 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     DoubleArray rhoKnots = DoubleArray.of(0.75, 2.75, 4.75);
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
     SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
-        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
-            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.95,
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.ofFixedBeta(
+            IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA,
             alphaKnots, rhoKnots, nuKnots,
-            CurveInterpolators.LINEAR, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan(),
-            DoubleArray.of(0.5, 0.95, 0.0, 0.05));
+            DoubleArray.of(0.5, 0.95, 0.0, 0.05),
+            CurveInterpolators.LINEAR, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT, SabrVolatilityFormula.hagan());
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
         createBlackMaturities(), strikes, ValueType.STRIKE, createFullFlatBlackDataMatrix(), ValueType.BLACK_VOLATILITY);
@@ -149,7 +149,6 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
         assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
       }
     }
-//    print(res, strikes, 10d);
   }
 
   public void test_recovery_normal() {
@@ -159,7 +158,7 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
     DoubleArray nuKnots = DoubleArray.of(0.75, 1.75, 2.75, 4.75, 6.75, 9.75);
 
     SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
-        SabrIborCapletFloorletVolatilityCalibrationDefinition.of(
+        SabrIborCapletFloorletVolatilityCalibrationDefinition.ofFixedBeta(
             IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, 0.7,
             alphaKnots, rhoKnots, nuKnots,
             CurveInterpolators.DOUBLE_QUADRATIC, CurveExtrapolators.FLAT, CurveExtrapolators.FLAT,

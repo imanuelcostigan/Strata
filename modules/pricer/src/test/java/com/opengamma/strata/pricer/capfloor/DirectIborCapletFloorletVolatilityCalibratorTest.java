@@ -166,51 +166,49 @@ public class DirectIborCapletFloorletVolatilityCalibratorTest
 //    }
   }
 
-//  public void recovery_test_normalToBlack() {
-//
-//    double lambdaT = 0.07;
-//    double lambdaK = 0.07;
-//    double error = 1.0e-5;
-//    DirectIborCapletFloorletDefinition definition = DirectIborCapletFloorletDefinition.of(
-//        IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
-//        GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR), 0.04);
-//    ImmutableList<Period> maturities = createNormalMaturities();
-//    DoubleArray strikes = createNormalStrikes();
-//    RawOptionData data = RawOptionData.of(
-//        maturities, strikes, ValueType.STRIKE, createFullNormalDataMatrix(),
-//        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.NORMAL_VOLATILITY);
-//    IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
-//    NormalIborCapletFloorletExpiryStrikeVolatilities resVol =
-//        (NormalIborCapletFloorletExpiryStrikeVolatilities) res.getVolatilities();
-//    for (int i = 0; i < strikes.size(); ++i) {
-//      Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsNormalVols(i);
-//      List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
-//      List<Double> vols = capsAndVols.getSecond();
-//      int nCaps = caps.size();
-//      for (int j = 0; j < nCaps; ++j) {
-//        ConstantSurface volSurface = ConstantSurface.of(
-//            Surfaces.normalVolatilityByExpiryStrike("test", ACT_ACT_ISDA), vols.get(j));
-//        NormalIborCapletFloorletExpiryStrikeVolatilities constVol = NormalIborCapletFloorletExpiryStrikeVolatilities.of(
-//            USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
-//        double priceOrg = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
-//        double priceCalib = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, resVol).getAmount();
-//        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL);
-//      }
+  public void recovery_test_normalToBlack() {
+
+    double lambdaT = 0.1;
+    double lambdaK = 0.1;
+    double error = 1.0e-4;
+    DirectIborCapletFloorletVolatilityDefinition definition = DirectIborCapletFloorletVolatilityDefinition.of(
+        IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, lambdaT, lambdaK,
+        GridSurfaceInterpolator.of(CurveInterpolators.LINEAR, CurveInterpolators.LINEAR), 0.02);
+    ImmutableList<Period> maturities = createNormalEquivMaturities();
+    DoubleArray strikes = createNormalEquivStrikes();
+    RawOptionData data = RawOptionData.of(
+        maturities, strikes, ValueType.STRIKE, createFullNormalEquivDataMatrix(),
+        DoubleMatrix.filled(maturities.size(), strikes.size(), error), ValueType.NORMAL_VOLATILITY);
+    IborCapletFloorletVolatilityCalibrationResult res = CALIBRATOR.calibrate(definition, CALIBRATION_TIME, data, RATES_PROVIDER);
+    ShiftedBlackIborCapletFloorletExpiryStrikeVolatilities resVol =
+        (ShiftedBlackIborCapletFloorletExpiryStrikeVolatilities) res.getVolatilities();
+    for (int i = 0; i < strikes.size(); ++i) {
+      Pair<List<ResolvedIborCapFloorLeg>, List<Double>> capsAndVols = getCapsNormalEquivVols(i);
+      List<ResolvedIborCapFloorLeg> caps = capsAndVols.getFirst();
+      List<Double> vols = capsAndVols.getSecond();
+      int nCaps = caps.size();
+      for (int j = 0; j < nCaps; ++j) {
+        ConstantSurface volSurface = ConstantSurface.of(
+            Surfaces.normalVolatilityByExpiryStrike("test", ACT_ACT_ISDA), vols.get(j));
+        NormalIborCapletFloorletExpiryStrikeVolatilities constVol = NormalIborCapletFloorletExpiryStrikeVolatilities.of(
+            USD_LIBOR_3M, CALIBRATION_TIME, volSurface);
+        double priceOrg = LEG_PRICER_NORMAL.presentValue(caps.get(j), RATES_PROVIDER, constVol).getAmount();
+        double priceCalib = LEG_PRICER_BLACK.presentValue(caps.get(j), RATES_PROVIDER, resVol).getAmount();
+        assertEquals(priceOrg, priceCalib, Math.max(priceOrg, 1d) * TOL * 20d);
+      }
+    }
+
+//    assertEquals(res.getChiSquare(), 0d);
+//    assertEquals(res.getChiSquare(), 0d);
+//    assertEquals(resVol.getIndex(), USD_LIBOR_3M);
+//    assertEquals(resVol.getName(), definition.getName());
+//    assertEquals(resVol.getValuationDateTime(), CALIBRATION_TIME);
+//    InterpolatedNodalSurface surface = (InterpolatedNodalSurface) resVol.getSurface();
+//    for (int i = 0; i < surface.getParameterCount(); ++i) {
+//      GenericVolatilitySurfacePeriodParameterMetadata metadata =
+//          (GenericVolatilitySurfacePeriodParameterMetadata) surface.getParameterMetadata(i);
+//      assertEquals(metadata.getStrike().getValue(), surface.getYValues().get(i));
 //    }
-//
-////    print(res, strikes, 20d);
-//
-////    assertEquals(res.getChiSquare(), 0d);
-////    assertEquals(res.getChiSquare(), 0d);
-////    assertEquals(resVol.getIndex(), USD_LIBOR_3M);
-////    assertEquals(resVol.getName(), definition.getName());
-////    assertEquals(resVol.getValuationDateTime(), CALIBRATION_TIME);
-////    InterpolatedNodalSurface surface = (InterpolatedNodalSurface) resVol.getSurface();
-////    for (int i = 0; i < surface.getParameterCount(); ++i) {
-////      GenericVolatilitySurfacePeriodParameterMetadata metadata =
-////          (GenericVolatilitySurfacePeriodParameterMetadata) surface.getParameterMetadata(i);
-////      assertEquals(metadata.getStrike().getValue(), surface.getYValues().get(i));
-////    }
-//  }
+  }
 
 }

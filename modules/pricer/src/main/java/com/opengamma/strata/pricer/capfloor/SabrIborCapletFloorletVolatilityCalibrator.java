@@ -70,7 +70,8 @@ public class SabrIborCapletFloorletVolatilityCalibrator
     TRANSFORMS[0] = new SingleRangeLimitTransform(0.0, LimitType.GREATER_THAN); // alpha > 0
     TRANSFORMS[1] = new DoubleRangeLimitTransform(0.0, 1.0); // 0 <= beta <= 1
     TRANSFORMS[2] = new DoubleRangeLimitTransform(-RHO_LIMIT, RHO_LIMIT); // -1 <= rho <= 1
-    TRANSFORMS[3] = new SingleRangeLimitTransform(0.0, LimitType.GREATER_THAN);
+    TRANSFORMS[3] = new DoubleRangeLimitTransform(0.001d, 2.50d);
+    // nu > 0  and limit on Nu to avoid numerical instability in formula for large nu.
   }
 
   /**
@@ -236,12 +237,12 @@ public class SabrIborCapletFloorletVolatilityCalibrator
           CurrencyParameterSensitivities sensi = volsNew.parameterSensitivity(point);
           double targetPriceInv = 1d / priceList.get(i);
           DoubleArray sensitivities = sensi.getSensitivity(alphaName, currency).getSensitivity();
-          if (!sabrDefinition.getBetaCurve().isPresent()) {
+          if (sabrDefinition.getBetaCurve().isPresent()) { // beta fixed
+            sensitivities = sensitivities.concat(sensi.getSensitivity(rhoName, currency).getSensitivity());
+          } else { // rho fixed
             sensitivities = sensitivities.concat(sensi.getSensitivity(betaName, currency).getSensitivity());
           }
-          jacobian[i] = sensitivities
-              .concat(sensi.getSensitivity(rhoName, currency).getSensitivity())
-              .concat(sensi.getSensitivity(nuName, currency).getSensitivity())
+          jacobian[i] = sensitivities.concat(sensi.getSensitivity(nuName, currency).getSensitivity())
               .multipliedBy(targetPriceInv)
               .toArray();
         }

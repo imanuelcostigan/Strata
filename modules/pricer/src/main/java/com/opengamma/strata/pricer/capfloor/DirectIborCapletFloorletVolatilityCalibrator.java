@@ -25,6 +25,7 @@ import com.opengamma.strata.market.curve.interpolator.CurveInterpolators;
 import com.opengamma.strata.market.surface.InterpolatedNodalSurface;
 import com.opengamma.strata.market.surface.Surface;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
+import com.opengamma.strata.market.surface.Surfaces;
 import com.opengamma.strata.market.surface.interpolator.GridSurfaceInterpolator;
 import com.opengamma.strata.math.impl.linearalgebra.CholeskyDecompositionCommons;
 import com.opengamma.strata.math.impl.minimization.PositiveOrZero;
@@ -146,8 +147,16 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       startIndex[i + 1] = volList.size();
       ArgChecker.isTrue(startIndex[i + 1] > startIndex[i], "no valid option data for {}", expiries.get(i));
     }
+    DoubleArray initialVols = DoubleArray.copyOf(volList);
+    if (directDefinition.getShiftCurve().isPresent() && capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
+      metadata = Surfaces.blackVolatilityByExpiryStrike(directDefinition.getName().getName(), directDefinition.getDayCount());
+      Curve shiftCurve = directDefinition.getShiftCurve().get();
+      initialVols = DoubleArray.of(capList.size(), n -> volList.get(n) /
+          (ratesProvider.iborIndexRates(index).rate(capList.get(n).getFinalPeriod().getIborRate().getObservation()) +
+              shiftCurve.yValue(timeList.get(n))));
+    }
     InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
-        metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), DoubleArray.copyOf(volList), INTERPOLATOR);
+        metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), initialVols, INTERPOLATOR);
 
     ResolvedIborCapFloorLeg cap = capList.get(capList.size() - 1);
     int nCaplets = cap.getCapletFloorletPeriods().size();
@@ -158,22 +167,16 @@ public class DirectIborCapletFloorletVolatilityCalibrator
         metadata, capletNodes.getFirst(), capletNodes.getSecond(), capletNodes.getThird(), INTERPOLATOR);
     DoubleMatrix penaltyMatrix = directDefinition.computePenaltyMatrix(strikes, capletExpiries);
 
-    DoubleArray initialGuess = capletNodes.getThird();
     if (directDefinition.getShiftCurve().isPresent()) {
       Curve shiftCurve = directDefinition.getShiftCurve().get();
       volatilitiesFunction = createShiftedBlackVolatilitiesFunction(index, calibrationDateTime, shiftCurve);
-      if (capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
-        initialGuess = DoubleArray.of(capList.size(), n -> volList.get(n) /
-            (ratesProvider.iborIndexRates(index).rate(capList.get(n).getFinalPeriod().getIborRate().getObservation()) +
-                shiftCurve.yValue(timeList.get(n)))); // TODO this is wrong size!
-      }
     }
     LeastSquareResults res = solver.solve(
         DoubleArray.copyOf(priceList),
         DoubleArray.copyOf(errorList),
         getPriceFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
         getJacobianFunction(capList, ratesProvider, volatilitiesFunction, baseSurface),
-        initialGuess,
+        capletNodes.getThird(),
         penaltyMatrix,
         POSITIVE);
     InterpolatedNodalSurface resSurface = InterpolatedNodalSurface.of(
