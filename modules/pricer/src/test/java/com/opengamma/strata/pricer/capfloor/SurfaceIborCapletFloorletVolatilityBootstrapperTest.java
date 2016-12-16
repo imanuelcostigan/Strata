@@ -41,7 +41,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   private static final double TOL = 1.0e-14;
 
   public void recovery_test_blackSurface() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -77,7 +77,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void test_invalid_data() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -86,7 +86,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_blackSurface_shift() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR,
         ConstantCurve.of("Black shift", 0.02));
     DoubleArray strikes = createBlackStrikes();
@@ -124,7 +124,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_blackCurve() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     for (int i = 0; i < strikes.size(); ++i) {
@@ -153,7 +153,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_flat() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, LINEAR);
     DoubleArray strikes = createBlackStrikes();
     RawOptionData data = RawOptionData.of(
@@ -180,7 +180,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_normal1() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC);
     DoubleArray strikes = createNormalStrikes();
     RawOptionData data = RawOptionData.of(
@@ -217,7 +217,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_normal2() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC);
     DoubleArray strikes = createNormalEquivStrikes();
     RawOptionData data = RawOptionData.of(
@@ -244,7 +244,7 @@ public class SurfaceIborCapletFloorletVolatilityBootstrapperTest extends CapletS
   }
 
   public void recovery_test_normal2_shift() {
-    SurfaceIborCapletFloorletBootstrapVolatilityDefinition definition = SurfaceIborCapletFloorletBootstrapVolatilityDefinition.of(
+    SurfaceIborCapletFloorletVolatilityBootstrapDefinition definition = SurfaceIborCapletFloorletVolatilityBootstrapDefinition.of(
         IborCapletFloorletVolatilitiesName.of("test"), USD_LIBOR_3M, ACT_ACT_ISDA, LINEAR, DOUBLE_QUADRATIC,
         ConstantCurve.of("Black shift", 0.02));
     DoubleArray strikes = createNormalEquivStrikes();
