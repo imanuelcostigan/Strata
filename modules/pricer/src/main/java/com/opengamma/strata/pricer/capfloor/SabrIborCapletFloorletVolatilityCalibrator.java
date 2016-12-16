@@ -128,7 +128,7 @@ public class SabrIborCapletFloorletVolatilityCalibrator
     ArgChecker.isTrue(ratesProvider.getValuationDate().equals(calibrationDateTime.toLocalDate()),
         "valuationDate of ratesProvider should be coherent to calibrationDateTime");
     ArgChecker.isTrue(definition instanceof SabrIborCapletFloorletVolatilityCalibrationDefinition,
-        "definition should be SabrTermStructureIborCapletFloorletCalibrationDefinition");
+        "definition should be SabrIborCapletFloorletVolatilityCalibrationDefinition");
     SabrIborCapletFloorletVolatilityCalibrationDefinition sabrDefinition =
         (SabrIborCapletFloorletVolatilityCalibrationDefinition) definition;
     IborIndex index = sabrDefinition.getIndex();
