@@ -120,6 +120,7 @@ public class DirectIborCapletFloorletVolatilityCalibrator
     ArgChecker.isTrue(definition instanceof DirectIborCapletFloorletVolatilityDefinition,
         "definition should be DirectIborCapletFloorletVolatilityDefinition");
     DirectIborCapletFloorletVolatilityDefinition directDefinition = (DirectIborCapletFloorletVolatilityDefinition) definition;
+    // unpack cap data, create node caps
     IborIndex index = directDefinition.getIndex();
     LocalDate calibrationDate = calibrationDateTime.toLocalDate();
     LocalDate baseDate = index.getEffectiveDateOffset().adjust(calibrationDate, referenceData);
@@ -147,30 +148,35 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       startIndex[i + 1] = volList.size();
       ArgChecker.isTrue(startIndex[i + 1] > startIndex[i], "no valid option data for {}", expiries.get(i));
     }
-    DoubleArray initialVols = DoubleArray.copyOf(volList);
-    if (directDefinition.getShiftCurve().isPresent() && capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
-      metadata = Surfaces.blackVolatilityByExpiryStrike(directDefinition.getName().getName(), directDefinition.getDayCount());
-      Curve shiftCurve = directDefinition.getShiftCurve().get();
-      initialVols = DoubleArray.of(capList.size(), n -> volList.get(n) /
-          (ratesProvider.iborIndexRates(index).rate(capList.get(n).getFinalPeriod().getIborRate().getObservation()) +
-              shiftCurve.yValue(timeList.get(n))));
-    }
-    InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
-        metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), initialVols, INTERPOLATOR);
-
+    // create caplet nodes and initial caplet vol surface
     ResolvedIborCapFloorLeg cap = capList.get(capList.size() - 1);
     int nCaplets = cap.getCapletFloorletPeriods().size();
     DoubleArray capletExpiries = DoubleArray.of(nCaplets, n -> directDefinition.getDayCount().relativeYearFraction(
         calibrationDate, cap.getCapletFloorletPeriods().get(n).getFixingDateTime().toLocalDate()));
-    Triple<DoubleArray, DoubleArray, DoubleArray> capletNodes = createCapletNode(capVolSurface, capletExpiries, strikes);
+    Triple<DoubleArray, DoubleArray, DoubleArray> capletNodes;
+    DoubleArray initialVols = DoubleArray.copyOf(volList);
+    if (directDefinition.getShiftCurve().isPresent()) {
+      metadata = Surfaces.blackVolatilityByExpiryStrike(directDefinition.getName().getName(), directDefinition.getDayCount());
+      Curve shiftCurve = directDefinition.getShiftCurve().get();
+      if (capFloorData.getDataType().equals(NORMAL_VOLATILITY)) {
+      initialVols = DoubleArray.of(capList.size(), n -> volList.get(n) /
+          (ratesProvider.iborIndexRates(index).rate(capList.get(n).getFinalPeriod().getIborRate().getObservation()) +
+              shiftCurve.yValue(timeList.get(n))));
+      }
+      InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
+          metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), initialVols, INTERPOLATOR);
+      capletNodes = createCapletNodes(capVolSurface, capletExpiries, strikes,
+          directDefinition.getShiftCurve().get());
+      volatilitiesFunction = createShiftedBlackVolatilitiesFunction(index, calibrationDateTime, shiftCurve);
+    } else {
+      InterpolatedNodalSurface capVolSurface = InterpolatedNodalSurface.of(
+          metadata, DoubleArray.copyOf(timeList), DoubleArray.copyOf(strikeList), initialVols, INTERPOLATOR);
+      capletNodes = createCapletNodes(capVolSurface, capletExpiries, strikes);
+    }
     InterpolatedNodalSurface baseSurface = InterpolatedNodalSurface.of(
         metadata, capletNodes.getFirst(), capletNodes.getSecond(), capletNodes.getThird(), INTERPOLATOR);
     DoubleMatrix penaltyMatrix = directDefinition.computePenaltyMatrix(strikes, capletExpiries);
-
-    if (directDefinition.getShiftCurve().isPresent()) {
-      Curve shiftCurve = directDefinition.getShiftCurve().get();
-      volatilitiesFunction = createShiftedBlackVolatilitiesFunction(index, calibrationDateTime, shiftCurve);
-    }
+    // solve least square
     LeastSquareResults res = solver.solve(
         DoubleArray.copyOf(priceList),
         DoubleArray.copyOf(errorList),
@@ -199,7 +205,7 @@ public class DirectIborCapletFloorletVolatilityCalibrator
   }
 
   //-------------------------------------------------------------------------
-  private Triple<DoubleArray, DoubleArray, DoubleArray> createCapletNode(
+  private Triple<DoubleArray, DoubleArray, DoubleArray> createCapletNodes(
       InterpolatedNodalSurface capVolSurface,
       DoubleArray capletExpiries,
       DoubleArray strikes) {
@@ -214,6 +220,27 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       timeCapletList.addAll(DoubleArray.filled(nStrikes, expiry).toList());
       strikeCapletList.addAll(strikes.toList());
       volCapletList.addAll(DoubleArray.of(nStrikes, n -> capVolSurface.zValue(expiry, strikes.get(n))).toList()); // initial guess
+    }
+    return Triple.of(DoubleArray.copyOf(timeCapletList), DoubleArray.copyOf(strikeCapletList), DoubleArray.copyOf(volCapletList));
+  }
+
+  private Triple<DoubleArray, DoubleArray, DoubleArray> createCapletNodes(
+      InterpolatedNodalSurface capVolSurface,
+      DoubleArray capletExpiries,
+      DoubleArray strikes,
+      Curve shiftCurve) {
+
+    List<Double> timeCapletList = new ArrayList<>();
+    List<Double> strikeCapletList = new ArrayList<>();
+    List<Double> volCapletList = new ArrayList<>();
+    int nTimes = capletExpiries.size();
+    int nStrikes = strikes.size();
+    for (int i = 0; i < nTimes; ++i) {
+      double expiry = capletExpiries.get(i);
+      double shift = shiftCurve.yValue(expiry);
+      timeCapletList.addAll(DoubleArray.filled(nStrikes, expiry).toList());
+      strikeCapletList.addAll(strikes.plus(shift).toList());
+      volCapletList.addAll(DoubleArray.of(nStrikes, n -> capVolSurface.zValue(expiry, strikes.get(n) + shift)).toList()); // initial guess
     }
     return Triple.of(DoubleArray.copyOf(timeCapletList), DoubleArray.copyOf(strikeCapletList), DoubleArray.copyOf(volCapletList));
   }
@@ -247,11 +274,14 @@ public class DirectIborCapletFloorletVolatilityCalibrator
       @Override
       public DoubleMatrix apply(DoubleArray capletVols) {
         IborCapletFloorletVolatilities newVols = volatilitiesFunction.apply(baseSurface.withZValues(capletVols));
-        return DoubleMatrix.ofArrayObjects(nCaps, nNodes, n -> newVols.parameterSensitivity(
-            pricer.presentValueSensitivityModelParamsVolatility(capList.get(n), ratesProvider, newVols).build())
-            .getSensitivities()
-            .get(0)
-            .getSensitivity());
+        return DoubleMatrix.ofArrayObjects(
+            nCaps,
+            nNodes,
+            n -> newVols.parameterSensitivity(
+                pricer.presentValueSensitivityModelParamsVolatility(capList.get(n), ratesProvider, newVols).build())
+                .getSensitivities()
+                .get(0)
+                .getSensitivity());
       }
     };
     return jacobianFunction;
