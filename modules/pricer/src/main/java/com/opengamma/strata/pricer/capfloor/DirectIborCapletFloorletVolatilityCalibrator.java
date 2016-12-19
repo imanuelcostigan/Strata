@@ -41,10 +41,11 @@ import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
  * The volatilities of the constituent caplets in the market caps are "model parameters"  
  * and calibrated to the market data under a certain penalty constraint.
  * <p>
- * If the shift curve is not present in {@code DirectIborCapletFloorletDefinition}, 
+ * If the shift curve is not present in {@code DirectIborCapletFloorletVolatilityDefinition}, 
  * the resultant volatility type is the same as the input volatility type. e.g., 
- * Black caplet volatilities are returned if Balck cap volatilities are plugged in. 
- * On the other hand, if the shift curve is present in {@code DirectIborCapletFloorletDefinition}, 
+ * Black caplet volatilities are returned if Black cap volatilities are plugged in, 
+ * and normal caplet volatilities are returned otherwise. 
+ * On the other hand, if the shift curve is present in {@code DirectIborCapletFloorletVolatilityDefinition}, 
  * Black caplet volatilities are returned for any input volatility type.  
  * <p>
  * The calibration is conducted once the cap volatilities are converted to cap prices. 

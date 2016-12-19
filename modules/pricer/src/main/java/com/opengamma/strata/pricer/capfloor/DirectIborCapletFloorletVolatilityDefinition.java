@@ -31,7 +31,6 @@ import com.opengamma.strata.basics.index.IborIndex;
 import com.opengamma.strata.collect.ArgChecker;
 import com.opengamma.strata.collect.array.DoubleArray;
 import com.opengamma.strata.collect.array.DoubleMatrix;
-import com.opengamma.strata.market.curve.ConstantCurve;
 import com.opengamma.strata.market.curve.Curve;
 import com.opengamma.strata.market.surface.SurfaceMetadata;
 import com.opengamma.strata.market.surface.Surfaces;
@@ -46,6 +45,9 @@ import com.opengamma.strata.pricer.option.RawOptionData;
  * The volatilities of the constituent caplets in the market caps are "model parameters" 
  * and calibrated to the market data under a certain penalty constraint.
  * The resulting volatilities object will be a set of caplet volatilities interpolated by {@link GridSurfaceInterpolator}.
+ * <p>
+ * The penalty defined in this class is based on the finite difference approximation of the second order derivatives 
+ * along time and strike directions. See {@link PenaltyMatrixGenerator} for detail.
  */
 @BeanDefinition
 public final class DirectIborCapletFloorletVolatilityDefinition
@@ -62,7 +64,7 @@ public final class DirectIborCapletFloorletVolatilityDefinition
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborIndex index;
   /**
-   * The day count to use.
+   * The day count to measure the time in the expiry dimension.
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final DayCount dayCount;
@@ -91,6 +93,17 @@ public final class DirectIborCapletFloorletVolatilityDefinition
   private final Curve shiftCurve;
 
   //-------------------------------------------------------------------------
+  /**
+   * Obtains an instance with zero shift.
+   * 
+   * @param name  the name of the volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count to use
+   * @param lambdaExpiry  the penalty intensity parameter for time dimension
+   * @param lambdaStrike  the penalty intensity parameter for strike dimension
+   * @param interpolator  the surface interpolator
+   * @return the instance
+   */
   public static DirectIborCapletFloorletVolatilityDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
@@ -109,6 +122,18 @@ public final class DirectIborCapletFloorletVolatilityDefinition
         null);
   }
 
+  /**
+   * Obtains an instance with shift curve.
+   * 
+   * @param name  the name of the volatilities
+   * @param index  the Ibor index
+   * @param dayCount  the day count to use
+   * @param lambdaExpiry  the penalty intensity parameter for time dimension
+   * @param lambdaStrike  the penalty intensity parameter for strike dimension
+   * @param interpolator  the surface interpolator
+   * @param shiftCurve  the shift surface
+   * @return the instance
+   */
   public static DirectIborCapletFloorletVolatilityDefinition of(
       IborCapletFloorletVolatilitiesName name,
       IborIndex index,
@@ -116,9 +141,8 @@ public final class DirectIborCapletFloorletVolatilityDefinition
       double lambdaExpiry,
       double lambdaStrike,
       GridSurfaceInterpolator interpolator,
-      double shift) {
+      Curve shiftCurve) {
 
-    ConstantCurve shiftCurve = ConstantCurve.of("Shift curve", shift);
     return new DirectIborCapletFloorletVolatilityDefinition(
         name,
         index,
@@ -143,7 +167,15 @@ public final class DirectIborCapletFloorletVolatilityDefinition
     return metadata;
   }
 
-
+  /**
+   * Computes penalty matrix. 
+   * <p>
+   * The penalty matrix is based on the second order finite difference differentiation in {@link PenaltyMatrixGenerator}.
+   * 
+   * @param strikes  the strikes
+   * @param expiries  the expiries
+   * @return the penalty matrix
+   */
   public DoubleMatrix computePenaltyMatrix(DoubleArray strikes, DoubleArray expiries) {
     // use second order difference unless too few points
     int diffOrderK = Math.min(2, strikes.size() - 1);
@@ -243,7 +275,7 @@ public final class DirectIborCapletFloorletVolatilityDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the day count to use.
+   * Gets the day count to measure the time in the expiry dimension.
    * @return the value of the property, not null
    */
   @Override
@@ -682,7 +714,7 @@ public final class DirectIborCapletFloorletVolatilityDefinition
     }
 
     /**
-     * Sets the day count to use.
+     * Sets the day count to measure the time in the expiry dimension.
      * @param dayCount  the new value, not null
      * @return this, for chaining, not null
      */

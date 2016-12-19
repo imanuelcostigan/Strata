@@ -79,7 +79,7 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final IborIndex index;
   /**
-   * The day count to use.
+   * The day count to measure the time in the expiry dimension.
    */
   @PropertyDefinition(validate = "notNull", overrideGet = true)
   private final DayCount dayCount;
@@ -789,7 +789,7 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
 
   //-----------------------------------------------------------------------
   /**
-   * Gets the day count to use.
+   * Gets the day count to measure the time in the expiry dimension.
    * @return the value of the property, not null
    */
   @Override
@@ -1442,7 +1442,7 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
     }
 
     /**
-     * Sets the day count to use.
+     * Sets the day count to measure the time in the expiry dimension.
      * @param dayCount  the new value, not null
      * @return this, for chaining, not null
      */
