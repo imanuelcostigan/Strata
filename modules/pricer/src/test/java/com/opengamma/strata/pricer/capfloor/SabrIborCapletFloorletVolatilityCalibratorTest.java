@@ -185,7 +185,7 @@ public class SabrIborCapletFloorletVolatilityCalibratorTest
   }
 
   public void recovery_test_flat() {
-    DoubleArray initial = DoubleArray.of(0.5, 0.95, 0.0, 0.05);
+    DoubleArray initial = DoubleArray.of(0.4, 0.95, 0.5, 0.05);
     SabrIborCapletFloorletVolatilityCalibrationDefinition definition =
         SabrIborCapletFloorletVolatilityCalibrationDefinition.ofFixedBeta(
             NAME, USD_LIBOR_3M, ACT_ACT_ISDA, ALPHA_KNOTS, BETA_RHO_KNOTS, NU_KNOTS, initial, LINEAR, FLAT, FLAT, HAGAN);

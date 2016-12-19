@@ -554,19 +554,17 @@ public final class SabrIborCapletFloorletVolatilityCalibrationDefinition
 
   @ImmutableValidator
   private void validate() {
-    if (parameterCurveNodes != null) {
-      ArgChecker.isTrue(parameterCurveNodes.size() == 4, "The size of parameterCurveNodes must be 4");
-      ArgChecker.isFalse(parameterCurveNodes.get(0).isEmpty(), "The alpha curve nodes must not be empty");
-      ArgChecker.isFalse(parameterCurveNodes.get(3).isEmpty(), "The nu curve nodes must not be empty");
-      if (betaCurve == null) {
-        ArgChecker.isFalse(parameterCurveNodes.get(1).isEmpty(), "The beta curve nodes must not be empty");
-      }
-      if (rhoCurve == null) {
-        ArgChecker.isFalse(parameterCurveNodes.get(2).isEmpty(), "The rho curve nodes must not be empty");
-      }
-    }
-    ArgChecker.isFalse(betaCurve != null && rhoCurve != null, "Only betaCurve or rhoCurve must be set, not both");
-    ArgChecker.isFalse(betaCurve == null && rhoCurve == null, "Either betaCurve or rhoCurve must be set");
+    ArgChecker.isTrue(initialParameters.size() == 4, "The size of initialParameters must be 4");
+    ArgChecker.isTrue(parameterCurveNodes.size() == 4, "The size of parameterCurveNodes must be 4");
+    ArgChecker.isFalse(parameterCurveNodes.get(0).isEmpty(), "The alpha curve nodes must not be empty");
+    ArgChecker.isFalse(parameterCurveNodes.get(3).isEmpty(), "The nu curve nodes must not be empty");
+    if (betaCurve == null) { // rho fixed
+      ArgChecker.isFalse(rhoCurve == null, "Either betaCurve or rhoCurve must be set");
+      ArgChecker.isFalse(parameterCurveNodes.get(1).isEmpty(), "The beta curve nodes must not be empty");
+    } else { // beta fixed
+      ArgChecker.isTrue(rhoCurve == null, "Only betaCurve or rhoCurve must be set, not both");
+      ArgChecker.isFalse(parameterCurveNodes.get(2).isEmpty(), "The rho curve nodes must not be empty");
+    } 
   }
 
   //-------------------------------------------------------------------------
