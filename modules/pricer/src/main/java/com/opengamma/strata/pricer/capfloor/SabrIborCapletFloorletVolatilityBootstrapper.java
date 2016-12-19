@@ -52,7 +52,7 @@ import com.opengamma.strata.product.capfloor.ResolvedIborCapFloorLeg;
  * The result is a complete set of curves for the SABR parameters spanned by the expiry time.  
  * The position of the node points on the resultant curves corresponds to market cap expiries, 
  * and are interpolated by a local interpolation scheme. 
- * See {@link SabrIborCapletFloorletBootstrapDefinition} for detail.
+ * See {@link SabrIborCapletFloorletVolatilityBootstrapDefinition} for detail.
  * <p>
  * The calibration to SABR is computed once the option volatility date is converted to prices. Thus we should note that 
  * the error values in {@code RawOptionData} are applied in the price space rather than the volatility space.
@@ -75,7 +75,7 @@ public class SabrIborCapletFloorletVolatilityBootstrapper extends IborCapletFloo
   private static final double RHO_LIMIT = 0.999;
   static {
     TRANSFORMS = new ParameterLimitsTransform[4];
-    TRANSFORMS[0] = new SingleRangeLimitTransform(0.0, LimitType.GREATER_THAN); // alpha > 0
+    TRANSFORMS[0] = new SingleRangeLimitTransform(0, LimitType.GREATER_THAN); // alpha > 0
     TRANSFORMS[1] = new DoubleRangeLimitTransform(0.0, 1.0); // 0 <= beta <= 1
     TRANSFORMS[2] = new DoubleRangeLimitTransform(-RHO_LIMIT, RHO_LIMIT); // -1 <= rho <= 1
     TRANSFORMS[3] = new DoubleRangeLimitTransform(0.001d, 2.50d);

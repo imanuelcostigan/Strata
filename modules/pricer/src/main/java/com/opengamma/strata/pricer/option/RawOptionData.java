@@ -102,7 +102,6 @@ public final class RawOptionData
       ArgChecker.isTrue(strikes.size() == data.columnCount(),
           "strikes should be of the same size as the inner data dimension");
     }
-
     return new RawOptionData(expiries, strikes, strikeType, data, null, dataType, 0.0);
   }
 

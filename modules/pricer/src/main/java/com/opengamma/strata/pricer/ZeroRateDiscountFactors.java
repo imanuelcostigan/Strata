@@ -73,7 +73,7 @@ public final class ZeroRateDiscountFactors
   /**
    * The day count convention of the curve.
    */
-  private final DayCount dayCount;  // cached, not a property
+  private final transient DayCount dayCount;  // cached, not a property
 
   //-------------------------------------------------------------------------
   /**
@@ -113,6 +113,11 @@ public final class ZeroRateDiscountFactors
     this.valuationDate = valuationDate;
     this.curve = curve;
     this.dayCount = dayCount;
+  }
+
+  // ensure standard constructor is invoked
+  private Object readResolve() {
+    return new ZeroRateDiscountFactors(currency, valuationDate, curve);
   }
 
   //-------------------------------------------------------------------------
@@ -159,6 +164,13 @@ public final class ZeroRateDiscountFactors
   public double discountFactor(double yearFraction) {
     // convert zero rate to discount factor
     return Math.exp(-yearFraction * curve.yValue(yearFraction));
+  }
+
+  @Override
+  public double discountFactorTimeDerivative(double yearFraction) {
+    double zr = curve.yValue(yearFraction);    
+    return -Math.exp(-yearFraction * curve.yValue(yearFraction)) 
+        * (zr + curve.firstDerivative(yearFraction) * yearFraction);
   }
 
   @Override
