@@ -12,6 +12,8 @@ import java.io.File;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.joda.convert.RenameHandler;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -33,6 +35,7 @@ import com.opengamma.strata.examples.marketdata.ExampleMarketDataBuilder;
 import com.opengamma.strata.measure.StandardComponents;
 import com.opengamma.strata.measure.rate.RatesMarketDataLookup;
 import com.opengamma.strata.product.Trade;
+import com.opengamma.strata.product.TradeList;
 import com.opengamma.strata.report.Report;
 import com.opengamma.strata.report.ReportCalculationResults;
 import com.opengamma.strata.report.ReportRequirements;
@@ -48,6 +51,10 @@ import com.opengamma.strata.report.trade.TradeReportTemplate;
  * Tool for running a report from the command line.
  */
 public final class ReportRunnerTool implements AutoCloseable {
+
+  static {
+    RenameHandler.INSTANCE.renamedType("com.opengamma.strata.examples.report.TradeList", TradeList.class);
+  }
 
   /**
    * The calculation runner.

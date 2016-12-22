@@ -3,7 +3,7 @@
  * 
  * Please see distribution for license.
  */
-package com.opengamma.strata.examples.report;
+package com.opengamma.strata.product;
 
 import java.util.List;
 import java.util.Set;
@@ -17,7 +17,6 @@ import org.joda.beans.PropertyDefinition;
 import org.joda.beans.impl.light.LightMetaBean;
 
 import com.google.common.collect.ImmutableList;
-import com.opengamma.strata.product.Trade;
 
 /**
  * Represents a list of trades.

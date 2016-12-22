@@ -39,7 +39,7 @@ import com.opengamma.strata.examples.finance.SwapPricingCcpExample;
 import com.opengamma.strata.examples.finance.SwapPricingWithCalibrationExample;
 import com.opengamma.strata.examples.finance.SwapTradeExample;
 import com.opengamma.strata.examples.report.ReportRunnerTool;
-import com.opengamma.strata.examples.report.TradeList;
+import com.opengamma.strata.product.TradeList;
 
 /**
  * Test examples do not throw exceptions.

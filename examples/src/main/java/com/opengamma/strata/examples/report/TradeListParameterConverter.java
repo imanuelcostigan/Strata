@@ -5,6 +5,8 @@
  */
 package com.opengamma.strata.examples.report;
 
+import com.opengamma.strata.product.TradeList;
+
 /**
  * Parameter converter for {@link TradeList}.
  */
